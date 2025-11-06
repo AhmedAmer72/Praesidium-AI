@@ -1,0 +1,69 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Praesidium AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              orbitron: ['Orbitron', 'sans-serif'],
+              rajdhani: ['Rajdhani', 'sans-serif'],
+            },
+            colors: {
+              'brand-primary': '#6A11CB',
+              'brand-secondary': '#2575FC',
+              'dark-bg': '#0D0E1B',
+              'dark-card': 'rgba(18, 19, 38, 0.5)',
+              'glow-purple': '#A855F7',
+              'glow-blue': '#3B82F6',
+            },
+            animation: {
+              'gradient-bg': 'gradient-bg 15s ease infinite',
+              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            },
+            keyframes: {
+              'gradient-bg': {
+                '0%, 100%': {
+                  'background-position': '0% 50%',
+                },
+                '50%': {
+                  'background-position': '100% 50%',
+                },
+              },
+            },
+          },
+        },
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.4",
+    "recharts": "https://aistudiocdn.com/recharts@^3.2.1",
+    "framer-motion": "https://aistudiocdn.com/framer-motion@^12.23.24",
+    "react-icons/": "https://aistudiocdn.com/react-icons@^5.5.0/",
+    "howler": "https://aistudiocdn.com/howler@^2.2.4",
+    "react-canvas-confetti": "https://aistudiocdn.com/react-canvas-confetti@^2.0.7"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-dark-bg text-gray-200 font-rajdhani">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Contract Test</title>
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+</head>
+<body>
+    <h1>Praesidium Contract Test</h1>
+    <button onclick="testContracts()">Test Contracts</button>
+    <div id="results"></div>
+
+    <script>
+        async function testContracts() {
+            const results = document.getElementById('results');
+            results.innerHTML = 'Testing...';
+            
+            try {
+                const provider = new ethers.providers.JsonRpcProvider('https://polygon-amoy.g.alchemy.com/v2/i0aPFNP4LWHLhR54V0tQ7');
+                
+                // Check contract code
+                const oracleCode = await provider.getCode('0x513CEae41D376d9eA0Dc305B0c382841FF80eD53');
+                const poolCode = await provider.getCode('0xe7146db1566EA71690D5eeC15AB754E005C72dAF');
+                
+                let output = '<h3>Contract Status:</h3>';
+                output += oracleCode !== '0x' ? '✅ RiskOracle: Deployed<br>' : '❌ RiskOracle: Not found<br>';
+                output += poolCode !== '0x' ? '✅ LiquidityPool: Deployed<br>' : '❌ LiquidityPool: Not found<br>';
+                
+                results.innerHTML = output;
+            } catch (error) {
+                results.innerHTML = '❌ Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
