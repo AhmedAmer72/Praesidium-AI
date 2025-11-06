@@ -1,0 +1,22 @@
+{
+  "name": "praesidium-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for Praesidium AI insurance protocol",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:amoy": "hardhat run scripts/deploy.js --network amoy",
+    "deploy:polygon": "hardhat run scripts/deploy.js --network polygon",
+    "verify": "hardhat verify"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "ethers": "^6.15.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "@openzeppelin/contracts": "^5.4.0",
+    "hardhat": "^2.19.0"
+  }
+}
