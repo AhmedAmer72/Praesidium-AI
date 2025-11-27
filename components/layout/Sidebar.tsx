@@ -2,12 +2,13 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiLayout, FiGrid, FiBarChart2, FiShield, FiChevronsLeft, FiChevronsRight, FiHome, FiBookOpen } from 'react-icons/fi';
+import { FiLayout, FiGrid, FiBarChart2, FiShield, FiChevronsLeft, FiChevronsRight, FiHome, FiBookOpen, FiFileText } from 'react-icons/fi';
 
 const navItems = [
   { name: 'Home', path: '/', icon: FiHome },
   { name: 'Dashboard', path: '/dashboard', icon: FiLayout },
   { name: 'Marketplace', path: '/marketplace', icon: FiGrid },
+  { name: 'Claims', path: '/claims', icon: FiFileText },
   { name: 'Liquidity', path: '/liquidity', icon: FiBarChart2 },
   { name: 'Docs', path: '/docs', icon: FiBookOpen },
 ];

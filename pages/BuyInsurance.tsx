@@ -11,7 +11,10 @@ import { mockProtocols } from '../constants';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import useSound from '../hooks/useSound';
-import { useContract } from '../hooks/useContract';
+import { useContract, switchToAmoyWithGoodRPC } from '../hooks/useContract';
+import { useNotification } from '../context/NotificationContext';
+
+// Now using V2 contract for all new policies
 
 const steps = ['Configure', 'Confirm', 'Complete'];
 
@@ -26,7 +29,8 @@ const BuyInsurance = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const { playSuccess, playClick } = useSound();
-  const { getInsuranceContract, connectWallet } = useContract();
+  const { getInsuranceV2Contract, connectWallet } = useContract();
+  const { notifyPolicyPurchased, notifyError, addNotification } = useNotification();
 
   const premium = useMemo(() => {
     if (!protocol) return 0;
@@ -52,33 +56,137 @@ const BuyInsurance = () => {
     try {
       await connectWallet();
       
-      const contract = getInsuranceContract();
+      const contract = getInsuranceV2Contract();
+      console.log('V2 Contract object:', contract);
+      console.log('V2 Contract address:', contract?.target);
+      
       if (!contract) {
-        console.log('Insurance contract not available');
+        notifyError('Insurance V2 contract not available. Please check your network connection.');
+        setIsProcessing(false);
         return;
       }
       
-      const premiumWei = ethers.parseUnits("0.001", "ether");
+      // For testnet, use a small fixed premium to make testing easier
+      // In production, this would use the actual calculated premium
+      const testPremiumEth = "0.001"; // 0.001 POL for testing
+      const premiumWei = ethers.parseUnits(testPremiumEth, "ether");
+      
       const coverageEth = (coverage / 2500).toString(); // Convert USD to ETH at $2500/ETH
       const coverageWei = ethers.parseUnits(coverageEth, "ether");
-      const duration = 365 * 24 * 60 * 60;
+      const duration = 365 * 24 * 60 * 60; // 1 year
       
-      const tx = await contract.createPolicy(
-        address,
-        premiumWei,
-        coverageWei,
-        duration,
-        protocol.name,
-        { value: premiumWei, gasLimit: 500000 }
-      );
+      console.log('Creating policy:', {
+        holder: address,
+        premium: ethers.formatEther(premiumWei) + ' POL',
+        coverage: ethers.formatEther(coverageWei) + ' POL',
+        duration: duration + ' seconds (1 year)',
+        protocol: protocol.name
+      });
       
-      await tx.wait();
+      // Add retry logic for rate limiting
+      let tx;
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          tx = await contract.createPolicy(
+            address,
+            premiumWei,
+            coverageWei,
+            duration,
+            protocol.name,
+            { 
+              value: premiumWei, 
+              gasLimit: 500000,
+              maxFeePerGas: ethers.parseUnits("50", "gwei"),
+              maxPriorityFeePerGas: ethers.parseUnits("30", "gwei")
+            }
+          );
+          break; // Success, exit retry loop
+        } catch (txError: any) {
+          if (txError.message?.includes('429') || txError.message?.includes('rate limit')) {
+            retries--;
+            if (retries > 0) {
+              console.log(`Rate limited, retrying in 2 seconds... (${retries} retries left)`);
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            } else {
+              throw txError;
+            }
+          } else {
+            throw txError; // Not a rate limit error, throw immediately
+          }
+        }
+      }
+      
+      if (!tx) {
+        throw new Error('Failed to submit transaction after multiple attempts');
+      }
+      
+      console.log('Transaction sent:', tx.hash);
+      
+      // Show immediate feedback that transaction is submitted
+      addNotification({
+        type: 'info',
+        title: 'Transaction Submitted',
+        message: 'Waiting for blockchain confirmation...',
+        txHash: tx.hash,
+        duration: 30000
+      });
+      
+      // Wait for confirmation with timeout - but don't fail if timeout
+      try {
+        const receipt = await Promise.race([
+          tx.wait(1), // Wait for 1 confirmation
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Transaction confirmation timeout')), 90000)
+          )
+        ]);
+        
+        console.log('Transaction confirmed:', receipt);
+      } catch (waitError: any) {
+        // If we timeout waiting for confirmation, the tx was still sent successfully
+        // Just proceed - the policy will appear once confirmed
+        console.log('Confirmation wait timed out, but tx was sent:', tx.hash);
+        addNotification({
+          type: 'warning',
+          title: 'Confirmation Pending',
+          message: 'Transaction sent! Confirmation is taking longer than usual. Your policy will appear on the dashboard once confirmed.',
+          txHash: tx.hash,
+          duration: 15000
+        });
+      }
+      
+      // Transaction was sent successfully - consider it a success
       setIsComplete(true);
       playSuccess();
+      notifyPolicyPurchased(protocol.name, coverage, tx.hash);
       nextStep();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Purchase failed:', error);
-      console.error('Purchase failed:', error.message || 'Unknown error');
+      
+      // Parse error message for user-friendly display
+      let errorMessage = 'Failed to purchase policy. Please try again.';
+      if (error.code === 'ACTION_REJECTED') {
+        errorMessage = 'Transaction was rejected by user.';
+      } else if (error.message?.includes('insufficient funds')) {
+        errorMessage = 'Insufficient funds for this transaction.';
+      } else if (error.message?.includes('Internal JSON-RPC error')) {
+        errorMessage = 'Network error. Please make sure you are connected to Polygon Amoy testnet.';
+      } else if (error.message?.includes('timeout')) {
+        errorMessage = 'Transaction is taking longer than expected. Check your wallet for status.';
+      } else if (error.message?.includes('429') || error.message?.includes('rate limit')) {
+        errorMessage = 'RPC rate limited. Trying to switch to a better RPC...';
+        // Try to switch to a better RPC
+        const switched = await switchToAmoyWithGoodRPC();
+        if (switched) {
+          errorMessage = 'Switched to a better RPC. Please try again.';
+        } else {
+          errorMessage = 'RPC rate limited. Please wait 30 seconds and try again, or manually change your MetaMask RPC to: https://polygon-amoy-bor-rpc.publicnode.com';
+        }
+      } else if (error.reason) {
+        errorMessage = error.reason;
+      }
+      
+      notifyError(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -178,7 +286,8 @@ const BuyInsurance = () => {
                                     <div className="flex justify-between"><span className="text-gray-400">Coverage:</span><span>${coverage.toLocaleString()}</span></div>
                                     <div className="flex justify-between"><span className="text-gray-400">Premium Rate:</span><span>{protocol.premiumRate}%</span></div>
                                     <hr className="border-gray-700"/>
-                                    <div className="flex justify-between text-lg font-bold"><span className="text-gray-400">Total Premium:</span><span className="text-glow-purple">${premium}</span></div>
+                                    <div className="flex justify-between text-lg font-bold"><span className="text-gray-400">Total Premium:</span><span className="text-glow-purple">0.001 POL</span></div>
+                                    <p className="text-xs text-yellow-400 mt-2">⚠️ Testnet mode: Using fixed 0.001 POL premium for testing</p>
                                 </div>
                                 <p className="text-xs text-gray-500 text-center">Premium is for a 1-year coverage period. Review details before confirming.</p>
                             </div>
@@ -187,7 +296,7 @@ const BuyInsurance = () => {
                             <div className="text-center space-y-4 flex flex-col items-center h-full justify-center">
                                 <FiCheckCircle className="text-green-400 text-6xl animate-pulse" />
                                 <h3 className="text-2xl font-bold">Purchase Complete!</h3>
-                                <p className="text-gray-400">Your policy has been minted as an NFT to your wallet. You are now covered.</p>
+                                <p className="text-gray-400">Your insurance policy is now active. You are covered against parametric triggers.</p>
                             </div>
                         )}
                     </motion.div>

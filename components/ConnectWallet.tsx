@@ -1,9 +1,26 @@
 
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useBalance, useAccount } from 'wagmi';
 import Button from './ui/Button';
 import { FiLink } from 'react-icons/fi';
 
 const ConnectWallet = () => {
+  const { address } = useAccount();
+  
+  // Fetch real-time balance with auto-refresh
+  const { data: balance } = useBalance({
+    address: address,
+    query: {
+      refetchInterval: 10000, // Refresh every 10 seconds
+    }
+  });
+
+  const formatBalance = () => {
+    if (!balance) return '';
+    const value = parseFloat(balance.formatted);
+    return `${value.toFixed(3)} ${balance.symbol}`;
+  };
+
   return (
     <ConnectButton.Custom>
       {({
@@ -83,9 +100,7 @@ const ConnectWallet = () => {
 
                   <Button variant="secondary" onClick={openAccountModal}>
                     {account.displayName}
-                    {account.displayBalance
-                      ? ` (${account.displayBalance})`
-                      : ''}
+                    {balance ? ` (${formatBalance()})` : ''}
                   </Button>
                 </div>
               );

@@ -13,6 +13,7 @@ import Button from '../components/ui/Button';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
 import { mockProtocols } from '../constants';
 import { useContract } from '../hooks/useContract';
+import { useNotification } from '../context/NotificationContext';
 import { Policy, Claim } from '../types';
 
 const containerVariants = {
@@ -70,7 +71,8 @@ const ClaimItem: React.FC<{ claim: Claim }> = ({ claim }) => {
 
 const Dashboard = () => {
   const { isConnected, address } = useAccount();
-  const { getInsuranceContract, getInsuranceContractReadOnly, connectWallet } = useContract();
+  const { getInsuranceV2ContractReadOnly, connectWallet } = useContract();
+  const { notifyPolicyExpiring } = useNotification();
   const [policies, setPolicies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -91,31 +93,50 @@ const Dashboard = () => {
       await connectWallet();
 
       try {
-        const contract = getInsuranceContractReadOnly();
+        // Using V2 contract with getPolicy function
+        const contract = getInsuranceV2ContractReadOnly();
         if (!contract) {
-          throw new Error('Contract not available');
+          throw new Error('V2 Contract not available');
         }
         
         const policyIds = await contract.getHolderPolicies(address);
-        console.log('Policy IDs:', policyIds);
+        console.log('Policy IDs from V2:', policyIds);
         
         const userPolicies = [];
 
+        // Fetch policies with delay to avoid rate limiting
         for (let i = 0; i < policyIds.length; i++) {
           try {
-            const policyData = await contract.getPolicy(policyIds[i]);
+            // Add small delay between requests to avoid rate limiting
+            if (i > 0) {
+              await new Promise(resolve => setTimeout(resolve, 200));
+            }
             
-            userPolicies.push({
-              id: policyData[0].toString(),
-              holder: policyData[1],
-              premium: parseFloat(ethers.formatEther(policyData[2])),
-              coverage: parseFloat(ethers.formatEther(policyData[3])),
-              expiry: policyData[4].toString(),
-              active: policyData[5],
-              protocol: policyData[6]
-            });
+            const policyId = policyIds[i];
+            // Skip if policy ID is 0 or invalid
+            if (!policyId || policyId.toString() === '0') {
+              continue;
+            }
+            
+            // V2 uses getPolicy function which returns 8 values
+            const policyData = await contract.getPolicy(policyId);
+            
+            // Check if policy data is valid (has a holder address)
+            if (policyData && policyData[1] && policyData[1] !== '0x0000000000000000000000000000000000000000') {
+              userPolicies.push({
+                id: policyData[0].toString(),
+                holder: policyData[1],
+                premium: parseFloat(ethers.formatEther(policyData[2])),
+                coverage: parseFloat(ethers.formatEther(policyData[3])),
+                expiry: policyData[4].toString(),
+                active: policyData[5],
+                protocol: policyData[6] || 'Unknown',
+                claimed: policyData[7] || false
+              });
+            }
           } catch (policyError) {
-            console.error(`Error fetching policy ${policyIds[i]}:`, policyError);
+            // Silently skip invalid policies - this is expected for deleted/invalid policy IDs
+            console.log(`Skipping policy ${policyIds[i]} - may not exist`);
           }
         }
 
@@ -135,9 +156,20 @@ const Dashboard = () => {
           avgScore
         });
         
-        console.log('Loaded policies:', userPolicies);
+        // Check for expiring policies (within 30 days)
+        const now = Math.floor(Date.now() / 1000);
+        userPolicies.forEach(policy => {
+          if (policy.active) {
+            const daysLeft = Math.floor((policy.expiry - now) / (24 * 60 * 60));
+            if (daysLeft <= 30 && daysLeft > 0) {
+              notifyPolicyExpiring(policy.protocol, daysLeft);
+            }
+          }
+        });
+        
+        console.log('Loaded policies from V2:', userPolicies);
       } catch (error) {
-        console.error('Contract error:', error);
+        console.error('V2 Contract error:', error);
         // Show empty state for now - user can purchase policies
         setPolicies([]);
         setStats({
@@ -152,7 +184,7 @@ const Dashboard = () => {
     };
 
     fetchPolicies();
-  }, [isConnected, address, getInsuranceContract]);
+  }, [isConnected, address, getInsuranceV2ContractReadOnly]);
 
   if (!isConnected) {
     return (
@@ -283,7 +315,10 @@ const Dashboard = () => {
             <h2 className="text-2xl font-orbitron mb-4">Claims History</h2>
             <Card>
                 <div className="text-center py-8">
-                  <p className="text-gray-400">No claims yet. Claims are processed automatically when parametric triggers occur.</p>
+                  <p className="text-gray-400 mb-4">Claims are processed automatically when parametric triggers occur.</p>
+                  <Link to="/claims">
+                    <Button variant="secondary">View Claims Center</Button>
+                  </Link>
                 </div>
             </Card>
         </motion.section>
@@ -295,6 +330,9 @@ const Dashboard = () => {
                     <p className="text-gray-400">Ready to secure more assets? Find the best coverage for your favorite protocols.</p>
                     <Link to="/marketplace">
                       <Button className="w-full" icon={<FiShield />}>Buy New Insurance</Button>
+                    </Link>
+                    <Link to="/claims">
+                      <Button variant="secondary" className="w-full">Manage Claims</Button>
                     </Link>
                     <Link to="/liquidity">
                       <Button variant="secondary" className="w-full">Manage Liquidity</Button>

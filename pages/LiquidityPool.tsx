@@ -11,6 +11,7 @@ import Button from '../components/ui/Button';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
 import { useContract } from '../hooks/useContract';
 import { CONTRACT_ADDRESSES } from '../constants';
+import { useNotification } from '../context/NotificationContext';
 
 const poolStatsData = [
   { name: 'USDC', value: 45, color: '#2775CA' },
@@ -22,6 +23,7 @@ const poolStatsData = [
 const LiquidityPool = () => {
   const { isConnected, address } = useAccount();
   const { getLiquidityContract, connectWallet } = useContract();
+  const { notifyDeposit, notifyWithdraw, notifyError } = useNotification();
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
   const [amount, setAmount] = useState('');
   const [userBalance, setUserBalance] = useState(0);
@@ -118,7 +120,7 @@ const LiquidityPool = () => {
 
   const handleDeposit = async () => {
     if (!amount || parseFloat(amount) <= 0) {
-      console.log('Invalid amount entered');
+      notifyError('Please enter a valid amount');
       return;
     }
 
@@ -127,26 +129,29 @@ const LiquidityPool = () => {
       await connectWallet();
       
       const contract = getLiquidityContract();
-      console.log('Deposit - contract check:', !!contract);
       
       if (!contract) {
-        console.log('Contract not available for deposit');
+        notifyError('Contract not available. Please check your connection.');
+        setProcessing(false);
         return;
       }
       
       const depositAmount = ethers.parseUnits(amount, "ether");
       console.log('Attempting deposit of:', ethers.formatEther(depositAmount), 'MATIC');
       
-      const tx = await contract.deposit({ value: depositAmount, gasLimit: 500000 });
+      const tx = await contract.deposit({ value: depositAmount, gasLimit: 200000 });
       console.log('Deposit transaction sent:', tx.hash);
       
-      await tx.wait();
+      // Wait for confirmation
+      await tx.wait(1);
       console.log(`Successfully deposited ${amount} MATIC!`);
+      notifyDeposit(parseFloat(amount), tx.hash);
       
       setAmount('');
       loadPoolData();
     } catch (error) {
       console.error('Deposit failed:', error.message || 'Unknown error');
+      notifyError(error.message || 'Deposit failed. Please try again.');
     } finally {
       setProcessing(false);
     }
@@ -154,7 +159,7 @@ const LiquidityPool = () => {
 
   const handleWithdraw = async () => {
     if (!amount || parseFloat(amount) <= 0) {
-      console.log('Invalid amount entered for withdraw');
+      notifyError('Please enter a valid amount');
       return;
     }
 
@@ -164,23 +169,26 @@ const LiquidityPool = () => {
       
       const contract = getLiquidityContract();
       if (!contract) {
-        console.log('Contract not available for withdraw');
+        notifyError('Contract not available. Please check your connection.');
+        setProcessing(false);
         return;
       }
       
       const withdrawShares = ethers.parseUnits(amount, "ether");
       console.log('Attempting withdraw of:', ethers.formatEther(withdrawShares), 'shares');
       
-      const tx = await contract.withdraw(withdrawShares, { gasLimit: 500000 });
+      const tx = await contract.withdraw(withdrawShares, { gasLimit: 200000 });
       console.log('Withdraw transaction sent:', tx.hash);
       
-      await tx.wait();
+      await tx.wait(1);
       console.log(`Successfully withdrew ${amount} shares!`);
+      notifyWithdraw(parseFloat(amount), tx.hash);
       
       setAmount('');
       loadPoolData();
     } catch (error) {
       console.error('Withdraw failed:', error.message || 'Unknown error');
+      notifyError(error.message || 'Withdrawal failed. Please try again.');
     } finally {
       setProcessing(false);
     }
