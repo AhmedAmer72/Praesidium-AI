@@ -6,9 +6,9 @@ import {
   getDefaultConfig,
 } from '@rainbow-me/rainbowkit';
 import { WagmiProvider } from 'wagmi';
+import { defineChain } from 'viem';
 import {
   polygon,
-  polygonAmoy,
 } from 'wagmi/chains';
 import {
   QueryClientProvider,
@@ -18,16 +18,40 @@ import '@rainbow-me/rainbowkit/styles.css';
 
 import Layout from './components/layout/Layout';
 import { Web3Provider } from './components/Web3Provider';
+import { NotificationProvider } from './context/NotificationContext';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import Marketplace from './pages/Marketplace';
 import LiquidityPool from './pages/LiquidityPool';
 import BuyInsurance from './pages/BuyInsurance';
+import Claims from './pages/Claims';
 import NotFound from './pages/NotFound';
 import Docs from './pages/Docs';
 import TestPage from './pages/TestPage';
 import SkeletonLoader from './components/ui/SkeletonLoader';
 
+// Custom Polygon Amoy chain with reliable public RPCs
+const polygonAmoy = defineChain({
+  id: 80002,
+  name: 'Polygon Amoy',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'POL',
+    symbol: 'POL',
+  },
+  rpcUrls: {
+    default: {
+      http: [
+        'https://polygon-amoy-bor-rpc.publicnode.com',
+        'https://polygon-amoy.drpc.org',
+      ],
+    },
+  },
+  blockExplorers: {
+    default: { name: 'PolygonScan', url: 'https://amoy.polygonscan.com' },
+  },
+  testnet: true,
+});
 
 // TODO: Get a projectId from https://cloud.walletconnect.com
 const projectId = 'd37e786b8676a000c8900050a9d001d6';
@@ -83,6 +107,11 @@ const PageRoutes = () => {
             <LiquidityPool />
           </motion.div>
         } />
+        <Route path="/claims" element={
+          <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}>
+            <Claims />
+          </motion.div>
+        } />
         <Route path="/docs" element={
           <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}>
             <Docs />
@@ -129,11 +158,13 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider initialChain={polygonAmoy}>
           <Web3Provider>
-            <HashRouter>
-              <Layout>
-                <PageRoutes />
-              </Layout>
-            </HashRouter>
+            <NotificationProvider>
+              <HashRouter>
+                <Layout>
+                  <PageRoutes />
+                </Layout>
+              </HashRouter>
+            </NotificationProvider>
           </Web3Provider>
         </RainbowKitProvider>
       </QueryClientProvider>

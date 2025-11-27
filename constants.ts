@@ -5,11 +5,13 @@ import { Protocol, Policy, Claim, RiskLevel } from './types';
 export const CONTRACT_ADDRESSES = {
   amoy: {
     PraesidiumInsurance: import.meta.env.VITE_PRAESIDIUM_INSURANCE_ADDRESS || '0xBE94Ea21e057c948DfDdF25347A0527f8f8819c0',
-    LiquidityPool: import.meta.env.VITE_LIQUIDITY_POOL_ADDRESS || '0x0066F84EADB94064F3d91624348ba2c72d303116',
-    RiskOracle: import.meta.env.VITE_RISK_ORACLE_ADDRESS || '0xd84841a5001c31C8Fcf2Eb4B11f13D0D6976CE6A'
+    PraesidiumInsuranceV2: import.meta.env.VITE_PRAESIDIUM_INSURANCE_V2_ADDRESS || '0x4299404F58B5e8cDCB13Fc38499F0ab85b885c53', // Deploy with: npx hardhat run scripts/deploy-v2.js --network amoy
+    LiquidityPool: import.meta.env.VITE_LIQUIDITY_POOL_ADDRESS || '0xe7146db1566EA71690D5eeC15AB754E005C72dAF',
+    RiskOracle: import.meta.env.VITE_RISK_ORACLE_ADDRESS || '0x513CEae41D376d9eA0Dc305B0c382841FF80eD53'
   },
   polygon: {
     PraesidiumInsurance: '',
+    PraesidiumInsuranceV2: '',
     LiquidityPool: '',
     RiskOracle: ''
   }

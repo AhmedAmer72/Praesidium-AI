@@ -1,10 +1,29 @@
 import { useState, useEffect } from 'react';
 import { useContract } from './useContract';
 
+// Fallback data for when contract is not available
+const FALLBACK_RISK_SCORES: Record<string, number> = {
+  'Aave': 88,
+  'Compound': 85,
+  'Curve Finance': 72,
+  'Uniswap': 92,
+  'SushiSwap': 65,
+  'Balancer V2': 78
+};
+
+const FALLBACK_PREMIUM_RATES: Record<string, number> = {
+  'Aave': 1.2,
+  'Compound': 1.5,
+  'Curve Finance': 2.8,
+  'Uniswap': 1.1,
+  'SushiSwap': 3.5,
+  'Balancer V2': 2.2
+};
+
 export const useRiskOracle = () => {
   const { getOracleContract, provider } = useContract();
-  const [riskScores, setRiskScores] = useState<Record<string, number>>({});
-  const [premiumRates, setPremiumRates] = useState<Record<string, number>>({});
+  const [riskScores, setRiskScores] = useState<Record<string, number>>(FALLBACK_RISK_SCORES);
+  const [premiumRates, setPremiumRates] = useState<Record<string, number>>(FALLBACK_PREMIUM_RATES);
   const [loading, setLoading] = useState(true);
 
   const fetchRiskData = async () => {
@@ -13,46 +32,18 @@ export const useRiskOracle = () => {
       // Wait for provider to be available
       if (!provider) {
         console.log('Provider not available, using fallback data');
-        // Use fallback data
-        setRiskScores({
-          'Aave': 88,
-          'Compound': 85,
-          'Curve Finance': 72,
-          'Uniswap': 92,
-          'SushiSwap': 65,
-          'Balancer V2': 78
-        });
-        setPremiumRates({
-          'Aave': 1.2,
-          'Compound': 1.5,
-          'Curve Finance': 2.8,
-          'Uniswap': 1.1,
-          'SushiSwap': 3.5,
-          'Balancer V2': 2.2
-        });
+        setRiskScores(FALLBACK_RISK_SCORES);
+        setPremiumRates(FALLBACK_PREMIUM_RATES);
+        setLoading(false);
         return;
       }
       
       const contract = getOracleContract();
       if (!contract) {
         console.log('Oracle contract not available, using fallback data');
-        // Use fallback data
-        setRiskScores({
-          'Aave': 88,
-          'Compound': 85,
-          'Curve Finance': 72,
-          'Uniswap': 92,
-          'SushiSwap': 65,
-          'Balancer V2': 78
-        });
-        setPremiumRates({
-          'Aave': 1.2,
-          'Compound': 1.5,
-          'Curve Finance': 2.8,
-          'Uniswap': 1.1,
-          'SushiSwap': 3.5,
-          'Balancer V2': 2.2
-        });
+        setRiskScores(FALLBACK_RISK_SCORES);
+        setPremiumRates(FALLBACK_PREMIUM_RATES);
+        setLoading(false);
         return;
       }
 
@@ -68,10 +59,10 @@ export const useRiskOracle = () => {
           scores[protocol] = parseInt(score.toString());
           rates[protocol] = parseInt(rate.toString()) / 100; // Convert basis points to percentage
         } catch (error) {
-          console.error(`Error fetching data for ${protocol}:`, error);
-          // Use fallback values
-          scores[protocol] = protocol === 'Aave' ? 88 : 75;
-          rates[protocol] = protocol === 'Aave' ? 1.2 : 2.0;
+          // Use fallback values for this protocol
+          scores[protocol] = FALLBACK_RISK_SCORES[protocol] || 75;
+          rates[protocol] = FALLBACK_PREMIUM_RATES[protocol] || 2.0;
+          console.log(`Using fallback data for ${protocol}`);
         }
       }
 
@@ -80,25 +71,26 @@ export const useRiskOracle = () => {
       console.log('Risk Oracle data loaded:', { scores, rates });
       
     } catch (error) {
-      console.error('Error fetching risk data:', error);
+      console.error('Error fetching risk data, using fallback:', error);
+      // Use fallback data
+      setRiskScores(FALLBACK_RISK_SCORES);
+      setPremiumRates(FALLBACK_PREMIUM_RATES);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    // Only fetch when provider is available
+    // Initial load with fallback data
+    fetchRiskData();
+  }, []);
+
+  useEffect(() => {
+    // Re-fetch when provider becomes available
     if (provider) {
       fetchRiskData();
     }
   }, [provider]);
-  
-  // Initial load with fallback data
-  useEffect(() => {
-    if (!provider) {
-      fetchRiskData();
-    }
-  }, []);
 
   return {
     riskScores,
