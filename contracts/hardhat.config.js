@@ -1,18 +1,34 @@
 require("@nomicfoundation/hardhat-ethers");
+require("@nomicfoundation/hardhat-verify");
 require("dotenv").config();
 
 module.exports = {
-  solidity: "0.8.20",
+  solidity: {
+    version: "0.8.20",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200
+      }
+    }
+  },
   networks: {
     amoy: {
-      type: "http",
-      url: process.env.RPC_URL || "https://rpc-amoy.polygon.technology",
+      url: process.env.RPC_URL_AMOY || "https://rpc-amoy.polygon.technology",
       accounts: process.env.PRIV_KEY ? [process.env.PRIV_KEY] : [],
+      chainId: 80002
     },
     polygon: {
-      type: "http",
-      url: process.env.RPC_URL || "https://polygon-rpc.com",
+      url: process.env.RPC_URL_POLYGON || "https://polygon-rpc.com",
       accounts: process.env.PRIV_KEY ? [process.env.PRIV_KEY] : [],
+      chainId: 137,
+      gasPrice: "auto"
+    }
+  },
+  etherscan: {
+    apiKey: {
+      polygon: process.env.POLYGONSCAN_API_KEY || "",
+      polygonAmoy: process.env.POLYGONSCAN_API_KEY || ""
     }
   }
 };

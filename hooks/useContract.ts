@@ -110,7 +110,7 @@ export const useContract = () => {
             setSigner(signer);
           }
         } catch (error) {
-          console.log('Auto-connect failed:', error);
+          // Auto-connect silently failed
         }
       }
     };
@@ -120,18 +120,15 @@ export const useContract = () => {
 
   const connectWallet = async () => {
     if (!provider) {
-      console.log('No provider available');
       return null;
     }
     
     try {
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
-      console.log('Wallet connected, signer:', !!signer);
       setSigner(signer);
       return signer;
     } catch (error) {
-      console.error('Failed to connect wallet:', error);
       return null;
     }
   };
@@ -153,13 +150,10 @@ export const useContract = () => {
 
   const getInsuranceV2Contract = () => {
     if (!signer) {
-      console.log('getInsuranceV2Contract: No signer available');
       return null;
     }
     const address = CONTRACT_ADDRESSES[network].PraesidiumInsuranceV2;
-    console.log('getInsuranceV2Contract: Using address', address);
     if (!address) {
-      console.log('V2 contract address not found, using V1');
       return null;
     }
     return new ethers.Contract(address, INSURANCE_V2_ABI, signer);
@@ -174,13 +168,6 @@ export const useContract = () => {
   };
 
   const getLiquidityContract = () => {
-    console.log('getLiquidityContract called:', {
-      signer: !!signer,
-      network,
-      address: CONTRACT_ADDRESSES[network].LiquidityPool,
-      allAddresses: CONTRACT_ADDRESSES
-    });
-    
     if (!signer) return null;
     const address = CONTRACT_ADDRESSES[network].LiquidityPool;
     if (!address) return null;

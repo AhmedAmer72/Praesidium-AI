@@ -60,4 +60,13 @@ contract LiquidityPool is ERC20, Ownable {
     function getUserShares(address user) external view returns (uint256) {
         return balanceOf(user);
     }
+
+    function getUserBalance(address user) external view returns (uint256) {
+        if (totalSupply() == 0) return 0;
+        return (balanceOf(user) * totalDeposits) / totalSupply();
+    }
+
+    function totalShares() external view returns (uint256) {
+        return totalSupply();
+    }
 }

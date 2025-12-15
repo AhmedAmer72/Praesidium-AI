@@ -9,20 +9,12 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
 import { useContract } from '../hooks/useContract';
+import { usePriceOracle } from '../hooks/usePriceOracle';
 import { useNotification } from '../context/NotificationContext';
+import { OnChainPolicy, OnChainClaim, ClaimStatus, TriggerType } from '../types';
 
-interface Policy {
-  id: string;
-  holder: string;
-  premium: number;
-  coverage: number;
-  expiry: number;
-  active: boolean;
-  protocol: string;
-  claimed?: boolean;
-}
-
-interface Claim {
+// Local Claim interface for UI state (extends on-chain claim)
+interface LocalClaim {
   id: string;
   policyId: string;
   protocol: string;
@@ -85,10 +77,11 @@ const triggerTypes = [
 const Claims = () => {
   const { isConnected, address } = useAccount();
   const { getInsuranceV2Contract, getInsuranceV2ContractReadOnly, connectWallet } = useContract();
+  const { ethUsdPrice, ethToUsd } = usePriceOracle();
   const { notifyClaimApproved, notifyClaimSubmitted, notifyError, addNotification } = useNotification();
   
-  const [claims, setClaims] = useState<Claim[]>([]);
-  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [claims, setClaims] = useState<LocalClaim[]>([]);
+  const [policies, setPolicies] = useState<OnChainPolicy[]>([]);
   const [activeTriggers, setActiveTriggers] = useState<Record<string, { active: boolean; type: number; severity: number }>>({});
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -151,16 +144,59 @@ const Claims = () => {
           }
         } catch (err) {
           // Silently skip invalid policies
-          console.log(`Skipping policy ${policyIds[i]} - may not exist`);
         }
       }
 
       setPolicies(userPolicies);
 
-      // Load claims from localStorage (hybrid approach)
-      const storedClaims = localStorage.getItem(`claims_${address}`);
-      if (storedClaims) {
-        setClaims(JSON.parse(storedClaims));
+      // Try to load claims from on-chain first
+      try {
+        const claimIds = await contract.getHolderClaims(address);
+        const onChainClaims: LocalClaim[] = [];
+        
+        for (let i = 0; i < claimIds.length; i++) {
+          try {
+            if (i > 0) await new Promise(resolve => setTimeout(resolve, 100));
+            const claimData = await contract.getClaim(claimIds[i]);
+            const policy = userPolicies.find(p => p.id === claimData[1].toString());
+            
+            const statusMap: Record<number, 'pending' | 'approved' | 'rejected' | 'paid'> = {
+              0: 'pending',
+              1: 'approved', 
+              2: 'rejected',
+              3: 'paid'
+            };
+            
+            onChainClaims.push({
+              id: claimData[0].toString(),
+              policyId: claimData[1].toString(),
+              protocol: policy?.protocol || 'Unknown',
+              amount: ethToUsd(parseFloat(ethers.formatEther(claimData[3]))),
+              triggerType: Number(claimData[4]),
+              timestamp: Number(claimData[5]) * 1000,
+              status: statusMap[Number(claimData[6])] || 'pending',
+              onChain: true
+            });
+          } catch (err) {
+            // Skip invalid claims
+          }
+        }
+        
+        if (onChainClaims.length > 0) {
+          setClaims(onChainClaims);
+        } else {
+          // Fallback to localStorage for hybrid approach
+          const storedClaims = localStorage.getItem(`claims_${address}`);
+          if (storedClaims) {
+            setClaims(JSON.parse(storedClaims));
+          }
+        }
+      } catch (claimError) {
+        // Fallback to localStorage
+        const storedClaims = localStorage.getItem(`claims_${address}`);
+        if (storedClaims) {
+          setClaims(JSON.parse(storedClaims));
+        }
       }
 
       // Load active triggers from localStorage
@@ -178,7 +214,7 @@ const Claims = () => {
       setActiveTriggers(triggers);
 
     } catch (error) {
-      console.error('Error loading data:', error);
+      // Error loading data - user will see empty state
     } finally {
       setLoading(false);
     }

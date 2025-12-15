@@ -12,6 +12,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import useSound from '../hooks/useSound';
 import { useContract, switchToAmoyWithGoodRPC } from '../hooks/useContract';
+import { usePriceOracle } from '../hooks/usePriceOracle';
 import { useNotification } from '../context/NotificationContext';
 
 // Now using V2 contract for all new policies
@@ -30,6 +31,7 @@ const BuyInsurance = () => {
   const [isComplete, setIsComplete] = useState(false);
   const { playSuccess, playClick } = useSound();
   const { getInsuranceV2Contract, connectWallet } = useContract();
+  const { ethUsdPrice, usdToEth } = usePriceOracle();
   const { notifyPolicyPurchased, notifyError, addNotification } = useNotification();
 
   const premium = useMemo(() => {
@@ -57,8 +59,6 @@ const BuyInsurance = () => {
       await connectWallet();
       
       const contract = getInsuranceV2Contract();
-      console.log('V2 Contract object:', contract);
-      console.log('V2 Contract address:', contract?.target);
       
       if (!contract) {
         notifyError('Insurance V2 contract not available. Please check your network connection.');
@@ -67,21 +67,14 @@ const BuyInsurance = () => {
       }
       
       // For testnet, use a small fixed premium to make testing easier
-      // In production, this would use the actual calculated premium
+      // In production, this would use the actual calculated premium from oracle
       const testPremiumEth = "0.001"; // 0.001 POL for testing
       const premiumWei = ethers.parseUnits(testPremiumEth, "ether");
       
-      const coverageEth = (coverage / 2500).toString(); // Convert USD to ETH at $2500/ETH
+      // Use live price for coverage conversion
+      const coverageEth = usdToEth(coverage).toFixed(6);
       const coverageWei = ethers.parseUnits(coverageEth, "ether");
       const duration = 365 * 24 * 60 * 60; // 1 year
-      
-      console.log('Creating policy:', {
-        holder: address,
-        premium: ethers.formatEther(premiumWei) + ' POL',
-        coverage: ethers.formatEther(coverageWei) + ' POL',
-        duration: duration + ' seconds (1 year)',
-        protocol: protocol.name
-      });
       
       // Add retry logic for rate limiting
       let tx;
@@ -106,7 +99,6 @@ const BuyInsurance = () => {
           if (txError.message?.includes('429') || txError.message?.includes('rate limit')) {
             retries--;
             if (retries > 0) {
-              console.log(`Rate limited, retrying in 2 seconds... (${retries} retries left)`);
               await new Promise(resolve => setTimeout(resolve, 2000));
             } else {
               throw txError;
@@ -120,8 +112,6 @@ const BuyInsurance = () => {
       if (!tx) {
         throw new Error('Failed to submit transaction after multiple attempts');
       }
-      
-      console.log('Transaction sent:', tx.hash);
       
       // Show immediate feedback that transaction is submitted
       addNotification({
@@ -140,12 +130,9 @@ const BuyInsurance = () => {
             setTimeout(() => reject(new Error('Transaction confirmation timeout')), 90000)
           )
         ]);
-        
-        console.log('Transaction confirmed:', receipt);
       } catch (waitError: any) {
         // If we timeout waiting for confirmation, the tx was still sent successfully
         // Just proceed - the policy will appear once confirmed
-        console.log('Confirmation wait timed out, but tx was sent:', tx.hash);
         addNotification({
           type: 'warning',
           title: 'Confirmation Pending',

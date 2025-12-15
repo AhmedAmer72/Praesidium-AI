@@ -10,6 +10,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
 import { useContract } from '../hooks/useContract';
+import { usePriceOracle } from '../hooks/usePriceOracle';
 import { CONTRACT_ADDRESSES } from '../constants';
 import { useNotification } from '../context/NotificationContext';
 
@@ -23,6 +24,7 @@ const poolStatsData = [
 const LiquidityPool = () => {
   const { isConnected, address } = useAccount();
   const { getLiquidityContract, connectWallet } = useContract();
+  const { ethUsdPrice, ethToUsd } = usePriceOracle();
   const { notifyDeposit, notifyWithdraw, notifyError } = useNotification();
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
   const [amount, setAmount] = useState('');
@@ -45,20 +47,8 @@ const LiquidityPool = () => {
       await connectWallet();
       
       const contract = getLiquidityContract();
-      console.log('Contract check:', {
-        contract: !!contract,
-        address: contract?.target || contract?.address || 'no address',
-        signer: !!contract?.runner,
-        contractObject: contract
-      });
-      
-      console.log('Environment check:', {
-        envVar: import.meta.env.VITE_LIQUIDITY_POOL_ADDRESS,
-        constantsAddress: CONTRACT_ADDRESSES.amoy.LiquidityPool
-      });
       
       if (!contract) {
-        console.log('Liquidity contract not available, using fallback data');
         setUserBalance(0);
         setUserShares(0);
         setPoolBalance(0);
@@ -66,48 +56,58 @@ const LiquidityPool = () => {
         return;
       }
       
-      console.log('Contract is available, proceeding with real calls...');
-      
-      // Get real contract data
+      // Get pool balance - this always exists
       const poolBalanceWei = await contract.getPoolBalance();
-      const userSharesAmount = await contract.getUserShares(address);
-      const userBalanceWei = await contract.getUserBalance(address);
-      const totalShares = await contract.totalShares();
-      
-      console.log('Real contract data loaded:', {
-        poolBalance: ethers.formatEther(poolBalanceWei),
-        userShares: ethers.formatEther(userSharesAmount),
-        userBalance: ethers.formatEther(userBalanceWei),
-        totalShares: ethers.formatEther(totalShares)
-      });
-      
-      // Convert from Wei to readable format
       const poolBalanceEth = parseFloat(ethers.formatEther(poolBalanceWei));
-      const userBalanceEth = parseFloat(ethers.formatEther(userBalanceWei));
+      
+      // Get user shares (ERC20 balanceOf - inherited)
+      const userSharesAmount = await contract.getUserShares(address);
       const userSharesNum = parseFloat(ethers.formatEther(userSharesAmount));
-      const totalSharesNum = parseFloat(ethers.formatEther(totalShares));
+      
+      // Try to get totalShares, fallback to totalSupply (ERC20)
+      let totalSharesNum = 0;
+      try {
+        const totalShares = await contract.totalShares();
+        totalSharesNum = parseFloat(ethers.formatEther(totalShares));
+      } catch {
+        // Fallback: use totalSupply from ERC20
+        const totalSupply = await contract.totalSupply();
+        totalSharesNum = parseFloat(ethers.formatEther(totalSupply));
+      }
+      
+      // Try to get user balance, fallback to calculating from shares
+      let userBalanceEth = 0;
+      try {
+        const userBalanceWei = await contract.getUserBalance(address);
+        userBalanceEth = parseFloat(ethers.formatEther(userBalanceWei));
+      } catch {
+        // Fallback: calculate from shares ratio
+        // userBalance = (userShares / totalShares) * poolBalance
+        if (totalSharesNum > 0) {
+          // Get totalDeposits if available
+          try {
+            const totalDeposits = await contract.totalDeposits();
+            const totalDepositsEth = parseFloat(ethers.formatEther(totalDeposits));
+            userBalanceEth = (userSharesNum / totalSharesNum) * totalDepositsEth;
+          } catch {
+            userBalanceEth = (userSharesNum / totalSharesNum) * poolBalanceEth;
+          }
+        }
+      }
       
       // Calculate pool share percentage
       const poolSharePercent = totalSharesNum > 0 ? (userSharesNum / totalSharesNum) * 100 : 0;
       
-      setPoolBalance(poolBalanceEth * 2500); // Convert ETH to USD at $2500/ETH
-      setUserBalance(userBalanceEth * 2500);
+      // Use live price from oracle
+      setPoolBalance(ethToUsd(poolBalanceEth));
+      setUserBalance(ethToUsd(userBalanceEth));
       setUserShares(poolSharePercent);
       
       // Calculate earnings (simplified - in real app would track deposits vs current value)
-      const estimatedEarnings = userBalanceEth * 0.0875 * 2500; // 8.75% APY
+      const estimatedEarnings = ethToUsd(userBalanceEth * 0.0875); // 8.75% APY
       setUserEarnings(estimatedEarnings);
       
-      console.log('Pool data loaded:', {
-        poolBalance: poolBalanceEth,
-        userBalance: userBalanceEth,
-        userShares: userSharesNum,
-        poolSharePercent,
-        earnings: estimatedEarnings
-      });
-      
     } catch (error) {
-      console.error('Error loading pool data:', error);
       // Set to zero if contract fails
       setUserBalance(0);
       setUserShares(0);
@@ -137,20 +137,16 @@ const LiquidityPool = () => {
       }
       
       const depositAmount = ethers.parseUnits(amount, "ether");
-      console.log('Attempting deposit of:', ethers.formatEther(depositAmount), 'MATIC');
       
       const tx = await contract.deposit({ value: depositAmount, gasLimit: 200000 });
-      console.log('Deposit transaction sent:', tx.hash);
       
       // Wait for confirmation
       await tx.wait(1);
-      console.log(`Successfully deposited ${amount} MATIC!`);
       notifyDeposit(parseFloat(amount), tx.hash);
       
       setAmount('');
       loadPoolData();
     } catch (error) {
-      console.error('Deposit failed:', error.message || 'Unknown error');
       notifyError(error.message || 'Deposit failed. Please try again.');
     } finally {
       setProcessing(false);
@@ -175,19 +171,15 @@ const LiquidityPool = () => {
       }
       
       const withdrawShares = ethers.parseUnits(amount, "ether");
-      console.log('Attempting withdraw of:', ethers.formatEther(withdrawShares), 'shares');
       
       const tx = await contract.withdraw(withdrawShares, { gasLimit: 200000 });
-      console.log('Withdraw transaction sent:', tx.hash);
       
       await tx.wait(1);
-      console.log(`Successfully withdrew ${amount} shares!`);
       notifyWithdraw(parseFloat(amount), tx.hash);
       
       setAmount('');
       loadPoolData();
     } catch (error) {
-      console.error('Withdraw failed:', error.message || 'Unknown error');
       notifyError(error.message || 'Withdrawal failed. Please try again.');
     } finally {
       setProcessing(false);

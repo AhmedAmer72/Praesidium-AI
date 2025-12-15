@@ -13,8 +13,9 @@ import Button from '../components/ui/Button';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
 import { mockProtocols } from '../constants';
 import { useContract } from '../hooks/useContract';
+import { usePriceOracle } from '../hooks/usePriceOracle';
 import { useNotification } from '../context/NotificationContext';
-import { Policy, Claim } from '../types';
+import { Policy, Claim, OnChainPolicy } from '../types';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -29,7 +30,7 @@ const itemVariants = {
   visible: { y: 0, opacity: 1 },
 };
 
-const PolicyCard: React.FC<{ policy: any }> = ({ policy }) => (
+const PolicyCard: React.FC<{ policy: OnChainPolicy; ethUsdPrice: number }> = ({ policy, ethUsdPrice }) => (
   <motion.div variants={itemVariants} className="bg-dark-card/60 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-6 shadow-2xl shadow-black/20 overflow-hidden relative nft-card">
     <div className="absolute inset-0 bg-gradient-to-br from-glow-purple/20 to-glow-blue/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
     <div className="flex justify-between items-start">
@@ -42,10 +43,10 @@ const PolicyCard: React.FC<{ policy: any }> = ({ policy }) => (
         </div>
     </div>
     <div className="mt-6 space-y-2 text-sm">
-        <div className="flex justify-between"><span className="text-gray-400">Coverage</span> <span className="font-semibold">${Math.round(policy.coverage * 2500).toLocaleString()}</span></div>
-        <div className="flex justify-between"><span className="text-gray-400">Premium Paid</span> <span className="font-semibold">${Math.round(policy.premium * 2500 * 100) / 100}</span></div>
+        <div className="flex justify-between"><span className="text-gray-400">Coverage</span> <span className="font-semibold">${Math.round(policy.coverage * ethUsdPrice).toLocaleString()}</span></div>
+        <div className="flex justify-between"><span className="text-gray-400">Premium Paid</span> <span className="font-semibold">${Math.round(policy.premium * ethUsdPrice * 100) / 100}</span></div>
         <div className="flex justify-between"><span className="text-gray-400">Status</span> <span className={`font-semibold ${policy.active ? 'text-green-400' : 'text-gray-500'}`}>{policy.active ? 'Active' : 'Expired'}</span></div>
-        <div className="flex justify-between"><span className="text-gray-400">Expires</span> <span className="font-semibold">{new Date(policy.expiry * 1000).toLocaleDateString()}</span></div>
+        <div className="flex justify-between"><span className="text-gray-400">Expires</span> <span className="font-semibold">{new Date(Number(policy.expiry) * 1000).toLocaleDateString()}</span></div>
     </div>
   </motion.div>
 );
@@ -72,8 +73,9 @@ const ClaimItem: React.FC<{ claim: Claim }> = ({ claim }) => {
 const Dashboard = () => {
   const { isConnected, address } = useAccount();
   const { getInsuranceV2ContractReadOnly, connectWallet } = useContract();
+  const { ethUsdPrice, ethToUsd } = usePriceOracle();
   const { notifyPolicyExpiring } = useNotification();
-  const [policies, setPolicies] = useState([]);
+  const [policies, setPolicies] = useState<OnChainPolicy[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalCoverage: 0,
@@ -142,9 +144,8 @@ const Dashboard = () => {
 
         setPolicies(userPolicies);
         
-        // Calculate stats from real policies (convert ETH to USD at ~$2500/ETH)
-        const ethToUsd = 2500;
-        const totalCoverage = userPolicies.reduce((sum, p) => sum + (p.coverage * ethToUsd), 0);
+        // Calculate stats from real policies using live ETH/USD price
+        const totalCoverage = userPolicies.reduce((sum, p) => sum + ethToUsd(p.coverage), 0);
         const activePolicies = userPolicies.filter(p => p.active).length;
         const totalPremiumPaid = userPolicies.reduce((sum, p) => sum + p.premium, 0);
         const avgScore = 85;
@@ -160,16 +161,13 @@ const Dashboard = () => {
         const now = Math.floor(Date.now() / 1000);
         userPolicies.forEach(policy => {
           if (policy.active) {
-            const daysLeft = Math.floor((policy.expiry - now) / (24 * 60 * 60));
+            const daysLeft = Math.floor((Number(policy.expiry) - now) / (24 * 60 * 60));
             if (daysLeft <= 30 && daysLeft > 0) {
               notifyPolicyExpiring(policy.protocol, daysLeft);
             }
           }
         });
-        
-        console.log('Loaded policies from V2:', userPolicies);
       } catch (error) {
-        console.error('V2 Contract error:', error);
         // Show empty state for now - user can purchase policies
         setPolicies([]);
         setStats({

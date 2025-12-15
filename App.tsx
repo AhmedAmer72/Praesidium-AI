@@ -29,6 +29,7 @@ import NotFound from './pages/NotFound';
 import Docs from './pages/Docs';
 import TestPage from './pages/TestPage';
 import SkeletonLoader from './components/ui/SkeletonLoader';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Custom Polygon Amoy chain with reliable public RPCs
 const polygonAmoy = defineChain({
@@ -154,21 +155,25 @@ function App() {
     }
   
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider initialChain={polygonAmoy}>
-          <Web3Provider>
-            <NotificationProvider>
-              <HashRouter>
-                <Layout>
-                  <PageRoutes />
-                </Layout>
-              </HashRouter>
-            </NotificationProvider>
-          </Web3Provider>
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
+    <ErrorBoundary>
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={queryClient}>
+          <RainbowKitProvider initialChain={polygonAmoy}>
+            <Web3Provider>
+              <NotificationProvider>
+                <HashRouter>
+                  <Layout>
+                    <ErrorBoundary>
+                      <PageRoutes />
+                    </ErrorBoundary>
+                  </Layout>
+                </HashRouter>
+              </NotificationProvider>
+            </Web3Provider>
+          </RainbowKitProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </ErrorBoundary>
   );
 }
 
