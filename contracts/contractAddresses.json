@@ -4,5 +4,10 @@
     "LiquidityPool": "0xe7146db1566EA71690D5eeC15AB754E005C72dAF",
     "RiskOracle": "0x513CEae41D376d9eA0Dc305B0c382841FF80eD53",
     "PraesidiumInsuranceV2": "0x4299404F58B5e8cDCB13Fc38499F0ab85b885c53"
+  },
+  "polygon": {
+    "RiskOracle": "0x39e14d328EbDe66E2137925EC1A0C77bf40e584e",
+    "LiquidityPool": "0xDD51A2e9D9D5F52D40D6f248198026423CB4EF4B",
+    "PraesidiumInsuranceV2": "0xb9B8321922E489d39ca522ed610025718a1D59c7"
   }
 }

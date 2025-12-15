@@ -5,17 +5,20 @@ import { Protocol, Policy, Claim, RiskLevel } from './types';
 export const CONTRACT_ADDRESSES = {
   amoy: {
     PraesidiumInsurance: import.meta.env.VITE_PRAESIDIUM_INSURANCE_ADDRESS || '0xBE94Ea21e057c948DfDdF25347A0527f8f8819c0',
-    PraesidiumInsuranceV2: import.meta.env.VITE_PRAESIDIUM_INSURANCE_V2_ADDRESS || '0x4299404F58B5e8cDCB13Fc38499F0ab85b885c53', // Deploy with: npx hardhat run scripts/deploy-v2.js --network amoy
+    PraesidiumInsuranceV2: import.meta.env.VITE_PRAESIDIUM_INSURANCE_V2_ADDRESS || '0x4299404F58B5e8cDCB13Fc38499F0ab85b885c53',
     LiquidityPool: import.meta.env.VITE_LIQUIDITY_POOL_ADDRESS || '0xe7146db1566EA71690D5eeC15AB754E005C72dAF',
     RiskOracle: import.meta.env.VITE_RISK_ORACLE_ADDRESS || '0x513CEae41D376d9eA0Dc305B0c382841FF80eD53'
   },
   polygon: {
-    PraesidiumInsurance: '',
-    PraesidiumInsuranceV2: '',
-    LiquidityPool: '',
-    RiskOracle: ''
+    PraesidiumInsurance: '', // Not deployed on mainnet
+    PraesidiumInsuranceV2: import.meta.env.VITE_MAINNET_PRAESIDIUM_INSURANCE_V2_ADDRESS || '0xb9B8321922E489d39ca522ed610025718a1D59c7',
+    LiquidityPool: import.meta.env.VITE_MAINNET_LIQUIDITY_POOL_ADDRESS || '0xDD51A2e9D9D5F52D40D6f248198026423CB4EF4B',
+    RiskOracle: import.meta.env.VITE_MAINNET_RISK_ORACLE_ADDRESS || '0x39e14d328EbDe66E2137925EC1A0C77bf40e584e'
   }
 };
+
+// Current active network - change to 'polygon' for mainnet, 'amoy' for testnet
+export const ACTIVE_NETWORK: 'amoy' | 'polygon' = 'polygon';
 
 // Network Configuration
 export const NETWORKS = {

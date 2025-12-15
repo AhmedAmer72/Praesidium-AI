@@ -60,7 +60,7 @@ const projectId = 'd37e786b8676a000c8900050a9d001d6';
 const config = getDefaultConfig({
   appName: 'Praesidium AI',
   projectId,
-  chains: [polygonAmoy, polygon],
+  chains: [polygon, polygonAmoy], // Polygon mainnet first (default)
   ssr: false,
 });
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { CONTRACT_ADDRESSES } from '../constants';
+import { CONTRACT_ADDRESSES, ACTIVE_NETWORK } from '../constants';
 
 declare global {
   interface Window {
@@ -8,19 +8,53 @@ declare global {
   }
 }
 
-// Fallback RPC URLs for Polygon Amoy (in case MetaMask RPC is rate limited)
+// Fallback RPC URLs for Polygon Amoy (testnet)
 const AMOY_RPC_URLS = [
   'https://polygon-amoy-bor-rpc.publicnode.com',
   'https://polygon-amoy.drpc.org',
   'https://rpc-amoy.polygon.technology'
 ];
 
-// Create a fallback JSON-RPC provider
-const getFallbackProvider = () => {
-  return new ethers.JsonRpcProvider(AMOY_RPC_URLS[0]);
+// Fallback RPC URLs for Polygon Mainnet
+const POLYGON_RPC_URLS = [
+  'https://polygon-bor-rpc.publicnode.com',
+  'https://polygon.drpc.org',
+  'https://polygon-rpc.com'
+];
+
+// Create a fallback JSON-RPC provider based on network
+const getFallbackProvider = (network: 'amoy' | 'polygon' = ACTIVE_NETWORK) => {
+  const rpcUrl = network === 'polygon' ? POLYGON_RPC_URLS[0] : AMOY_RPC_URLS[0];
+  return new ethers.JsonRpcProvider(rpcUrl);
 };
 
-// Request MetaMask to add/switch to Polygon Amoy with better RPC
+// Request MetaMask to add/switch to Polygon Mainnet
+export const switchToPolygonMainnet = async () => {
+  if (!window.ethereum) return false;
+  
+  try {
+    await window.ethereum.request({
+      method: 'wallet_addEthereumChain',
+      params: [{
+        chainId: '0x89', // 137 in hex
+        chainName: 'Polygon Mainnet',
+        nativeCurrency: {
+          name: 'POL',
+          symbol: 'POL',
+          decimals: 18
+        },
+        rpcUrls: ['https://polygon-bor-rpc.publicnode.com'],
+        blockExplorerUrls: ['https://polygonscan.com']
+      }]
+    });
+    return true;
+  } catch (error) {
+    console.error('Failed to switch to Polygon Mainnet:', error);
+    return false;
+  }
+};
+
+// Request MetaMask to add/switch to Polygon Amoy testnet
 export const switchToAmoyWithGoodRPC = async () => {
   if (!window.ethereum) return false;
   
@@ -44,6 +78,13 @@ export const switchToAmoyWithGoodRPC = async () => {
     console.error('Failed to switch network:', error);
     return false;
   }
+};
+
+// Switch to the active network based on ACTIVE_NETWORK constant
+export const switchToActiveNetwork = async () => {
+  return ACTIVE_NETWORK === 'polygon' 
+    ? switchToPolygonMainnet() 
+    : switchToAmoyWithGoodRPC();
 };
 
 // Contract ABIs (minimal for now)
@@ -94,7 +135,7 @@ const ORACLE_ABI = [
 export const useContract = () => {
   const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [signer, setSigner] = useState<ethers.JsonRpcSigner | null>(null);
-  const [network, setNetwork] = useState<'amoy' | 'polygon'>('amoy');
+  const [network, setNetwork] = useState<'amoy' | 'polygon'>(ACTIVE_NETWORK);
 
   useEffect(() => {
     const initProvider = async () => {
@@ -142,7 +183,7 @@ export const useContract = () => {
 
   const getInsuranceContractReadOnly = () => {
     // Use fallback provider to avoid MetaMask rate limiting
-    const fallbackProvider = getFallbackProvider();
+    const fallbackProvider = getFallbackProvider(network);
     const address = CONTRACT_ADDRESSES[network].PraesidiumInsurance;
     if (!address) return null;
     return new ethers.Contract(address, INSURANCE_ABI, fallbackProvider);
@@ -161,7 +202,7 @@ export const useContract = () => {
 
   const getInsuranceV2ContractReadOnly = () => {
     // Use fallback provider to avoid MetaMask rate limiting
-    const fallbackProvider = getFallbackProvider();
+    const fallbackProvider = getFallbackProvider(network);
     const address = CONTRACT_ADDRESSES[network].PraesidiumInsuranceV2;
     if (!address) return null;
     return new ethers.Contract(address, INSURANCE_V2_ABI, fallbackProvider);
@@ -176,7 +217,7 @@ export const useContract = () => {
 
   const getOracleContract = () => {
     // Use fallback provider to avoid MetaMask rate limiting
-    const fallbackProvider = getFallbackProvider();
+    const fallbackProvider = getFallbackProvider(network);
     const address = CONTRACT_ADDRESSES[network].RiskOracle;
     if (!address) return null;
     return new ethers.Contract(address, ORACLE_ABI, fallbackProvider);

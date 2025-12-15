@@ -26,9 +26,9 @@ module.exports = {
     }
   },
   etherscan: {
-    apiKey: {
-      polygon: process.env.POLYGONSCAN_API_KEY || "",
-      polygonAmoy: process.env.POLYGONSCAN_API_KEY || ""
-    }
+    apiKey: process.env.POLYGONSCAN_API_KEY || ""
+  },
+  sourcify: {
+    enabled: false
   }
 };

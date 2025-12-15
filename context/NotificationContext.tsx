@@ -72,7 +72,7 @@ const NotificationItem: React.FC<{
           <p className="text-gray-300 text-sm mt-1">{notification.message}</p>
           {notification.txHash && (
             <a
-              href={`https://amoy.polygonscan.com/tx/${notification.txHash}`}
+              href={`https://polygonscan.com/tx/${notification.txHash}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-glow-blue text-xs hover:underline mt-2 inline-block"

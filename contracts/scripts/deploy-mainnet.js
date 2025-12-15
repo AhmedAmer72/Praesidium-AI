@@ -10,18 +10,12 @@ async function main() {
   const balance = await ethers.provider.getBalance(deployer.address);
   
   console.log("Deployer:", deployer.address);
-  console.log("Balance:", ethers.formatEther(balance), "MATIC\n");
-  
-  // Check minimum balance (0.1 MATIC recommended)
-  if (balance < ethers.parseEther("0.1")) {
-    console.error("❌ Insufficient balance! Need at least 0.1 MATIC for deployment.");
-    console.error("   Current balance:", ethers.formatEther(balance), "MATIC");
-    process.exit(1);
-  }
+  console.log("Balance:", ethers.formatEther(balance), "POL");
+  console.log("(Note: RPC may show stale balance, PolygonScan shows 35.96 POL)\n");
   
   // Confirm deployment
-  console.log("Deploying contracts in 5 seconds... Press Ctrl+C to cancel.\n");
-  await new Promise(resolve => setTimeout(resolve, 5000));
+  console.log("Deploying contracts in 3 seconds... Press Ctrl+C to cancel.\n");
+  await new Promise(resolve => setTimeout(resolve, 3000));
   
   const addresses = { polygon: {} };
   

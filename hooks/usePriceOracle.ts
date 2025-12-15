@@ -1,9 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
-import { CONTRACT_ADDRESSES } from '../constants';
+import { CONTRACT_ADDRESSES, ACTIVE_NETWORK } from '../constants';
 
 // Fallback RPC for read-only operations
+const POLYGON_RPC = 'https://polygon-bor-rpc.publicnode.com';
 const AMOY_RPC = 'https://polygon-amoy-bor-rpc.publicnode.com';
+
+// Get RPC URL based on active network
+const getRpcUrl = () => ACTIVE_NETWORK === 'polygon' ? POLYGON_RPC : AMOY_RPC;
 
 // Default ETH/USD price (fallback if oracle unavailable)
 const DEFAULT_ETH_USD = 2500;
@@ -32,12 +36,12 @@ export const usePriceOracle = () => {
   const [error, setError] = useState<string | null>(null);
 
   const getProvider = useCallback(() => {
-    return new ethers.JsonRpcProvider(AMOY_RPC);
+    return new ethers.JsonRpcProvider(getRpcUrl());
   }, []);
 
   const getOracleContract = useCallback(() => {
     const provider = getProvider();
-    const address = CONTRACT_ADDRESSES.amoy.RiskOracle;
+    const address = CONTRACT_ADDRESSES[ACTIVE_NETWORK].RiskOracle;
     if (!address) return null;
     return new ethers.Contract(address, ORACLE_ABI, provider);
   }, [getProvider]);
