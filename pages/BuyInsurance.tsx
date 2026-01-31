@@ -79,6 +79,11 @@ const BuyInsurance = () => {
       // Add retry logic for rate limiting
       let tx;
       let retries = 3;
+      
+      // Get current gas prices from the network
+      const provider = contract.runner?.provider;
+      const feeData = await provider?.getFeeData();
+      
       while (retries > 0) {
         try {
           tx = await contract.createPolicy(
@@ -90,8 +95,8 @@ const BuyInsurance = () => {
             { 
               value: premiumWei, 
               gasLimit: 500000,
-              maxFeePerGas: ethers.parseUnits("50", "gwei"),
-              maxPriorityFeePerGas: ethers.parseUnits("30", "gwei")
+              maxFeePerGas: feeData?.maxFeePerGas ? feeData.maxFeePerGas * 2n : ethers.parseUnits("100", "gwei"),
+              maxPriorityFeePerGas: feeData?.maxPriorityFeePerGas ? feeData.maxPriorityFeePerGas * 2n : ethers.parseUnits("50", "gwei")
             }
           );
           break; // Success, exit retry loop

@@ -287,11 +287,19 @@ const Claims = () => {
       // Submit claim on-chain using V2's submitClaim function
       if (contract) {
         try {
+          // Get current gas prices from the network
+          const provider = contract.runner?.provider;
+          const feeData = await provider?.getFeeData();
+          
           const tx = await contract.submitClaim(
             selectedPolicy,
             trigger.type,
             claimEvidence || 'Parametric trigger detected',
-            { gasLimit: 300000 }
+            { 
+              gasLimit: 350000,
+              maxFeePerGas: feeData?.maxFeePerGas ? feeData.maxFeePerGas * 2n : ethers.parseUnits("100", "gwei"),
+              maxPriorityFeePerGas: feeData?.maxPriorityFeePerGas ? feeData.maxPriorityFeePerGas * 2n : ethers.parseUnits("50", "gwei")
+            }
           );
           
           addNotification({
@@ -347,9 +355,17 @@ const Claims = () => {
       // V2 contract uses approveClaim for on-chain approval
       if (contract) {
         try {
+          // Get current gas prices from the network
+          const provider = contract.runner?.provider;
+          const feeData = await provider?.getFeeData();
+          
           // For V2, we need to get the on-chain claim ID
           // For now, use claimPolicy as fallback if available
-          const tx = await contract.approveClaim(claim.policyId, { gasLimit: 300000 });
+          const tx = await contract.approveClaim(claim.policyId, { 
+            gasLimit: 350000,
+            maxFeePerGas: feeData?.maxFeePerGas ? feeData.maxFeePerGas * 2n : ethers.parseUnits("100", "gwei"),
+            maxPriorityFeePerGas: feeData?.maxPriorityFeePerGas ? feeData.maxPriorityFeePerGas * 2n : ethers.parseUnits("50", "gwei")
+          });
           
           addNotification({
             type: 'info',

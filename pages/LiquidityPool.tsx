@@ -138,7 +138,16 @@ const LiquidityPool = () => {
       
       const depositAmount = ethers.parseUnits(amount, "ether");
       
-      const tx = await contract.deposit({ value: depositAmount, gasLimit: 200000 });
+      // Get current gas prices from the network
+      const provider = contract.runner?.provider;
+      const feeData = await provider?.getFeeData();
+      
+      const tx = await contract.deposit({ 
+        value: depositAmount, 
+        gasLimit: 250000,
+        maxFeePerGas: feeData?.maxFeePerGas ? feeData.maxFeePerGas * 2n : ethers.parseUnits("100", "gwei"),
+        maxPriorityFeePerGas: feeData?.maxPriorityFeePerGas ? feeData.maxPriorityFeePerGas * 2n : ethers.parseUnits("50", "gwei")
+      });
       
       // Wait for confirmation
       await tx.wait(1);
@@ -172,7 +181,15 @@ const LiquidityPool = () => {
       
       const withdrawShares = ethers.parseUnits(amount, "ether");
       
-      const tx = await contract.withdraw(withdrawShares, { gasLimit: 200000 });
+      // Get current gas prices from the network
+      const provider = contract.runner?.provider;
+      const feeData = await provider?.getFeeData();
+      
+      const tx = await contract.withdraw(withdrawShares, { 
+        gasLimit: 250000,
+        maxFeePerGas: feeData?.maxFeePerGas ? feeData.maxFeePerGas * 2n : ethers.parseUnits("100", "gwei"),
+        maxPriorityFeePerGas: feeData?.maxPriorityFeePerGas ? feeData.maxPriorityFeePerGas * 2n : ethers.parseUnits("50", "gwei")
+      });
       
       await tx.wait(1);
       notifyWithdraw(parseFloat(amount), tx.hash);
