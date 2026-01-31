@@ -13,6 +13,7 @@ import Button from '../components/ui/Button';
 import useSound from '../hooks/useSound';
 import { useContract, switchToAmoyWithGoodRPC } from '../hooks/useContract';
 import { usePriceOracle } from '../hooks/usePriceOracle';
+import { useCoverageCapacity } from '../hooks/useCoverageCapacity';
 import { useNotification } from '../context/NotificationContext';
 
 // Now using V2 contract for all new policies
@@ -32,7 +33,23 @@ const BuyInsurance = () => {
   const { playSuccess, playClick } = useSound();
   const { getInsuranceV2Contract, connectWallet } = useContract();
   const { ethUsdPrice, usdToEth } = usePriceOracle();
+  const { availableCapacity, capacityStatus, utilizationRatio, loading: capacityLoading } = useCoverageCapacity();
   const { notifyPolicyPurchased, notifyError, addNotification } = useNotification();
+
+  // Calculate coverage in POL for capacity check
+  const coverageInPol = useMemo(() => usdToEth(coverage), [coverage, usdToEth]);
+  
+  // Check if coverage exceeds available capacity
+  const exceedsCapacity = useMemo(() => {
+    if (capacityLoading) return false;
+    return coverageInPol > availableCapacity;
+  }, [coverageInPol, availableCapacity, capacityLoading]);
+  
+  // Calculate max coverage user can purchase
+  const maxCoverageUsd = useMemo(() => {
+    if (capacityLoading || !ethUsdPrice) return Infinity;
+    return availableCapacity * ethUsdPrice;
+  }, [availableCapacity, ethUsdPrice, capacityLoading]);
 
   const premium = useMemo(() => {
     if (!protocol) return 0;
@@ -41,6 +58,11 @@ const BuyInsurance = () => {
 
   const nextStep = () => {
     playClick();
+    // Don't proceed if coverage exceeds capacity
+    if (currentStep === 0 && exceedsCapacity) {
+      notifyError(`Coverage exceeds pool capacity. Maximum available: $${maxCoverageUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}`);
+      return;
+    }
     if (currentStep < steps.length - 1) {
       setCurrentStep(s => s + 1);
     }
@@ -297,8 +319,41 @@ const BuyInsurance = () => {
                                 <h3 className="text-xl font-bold">Configure Your Coverage</h3>
                                 <div>
                                     <label className="block mb-2 text-gray-400">Coverage Amount</label>
-                                    <input type="range" min="1000" max={protocol.coverageLimit} step="1000" value={coverage} onChange={e => setCoverage(parseInt(e.target.value))} className="w-full" />
-                                    <div className="text-center text-2xl font-orbitron mt-2">${coverage.toLocaleString()}</div>
+                                    <input 
+                                      type="range" 
+                                      min="1000" 
+                                      max={Math.min(protocol.coverageLimit, maxCoverageUsd)} 
+                                      step="1000" 
+                                      value={coverage} 
+                                      onChange={e => setCoverage(parseInt(e.target.value))} 
+                                      className="w-full" 
+                                    />
+                                    <div className={`text-center text-2xl font-orbitron mt-2 ${exceedsCapacity ? 'text-red-400' : ''}`}>
+                                      ${coverage.toLocaleString()}
+                                    </div>
+                                    
+                                    {/* Capacity Warning */}
+                                    {exceedsCapacity && (
+                                      <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                                        <div className="flex items-start gap-2">
+                                          <FiAlertTriangle className="text-red-400 mt-0.5 flex-shrink-0" />
+                                          <div>
+                                            <p className="text-red-400 text-sm font-semibold">Exceeds Pool Capacity</p>
+                                            <p className="text-gray-400 text-xs mt-1">
+                                              Max available coverage: ${maxCoverageUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Capacity Info */}
+                                    {!capacityLoading && (
+                                      <div className="mt-3 text-xs text-gray-500 text-center">
+                                        Pool utilization: {utilizationRatio.toFixed(1)}% | 
+                                        Available: ${(availableCapacity * ethUsdPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                      </div>
+                                    )}
                                 </div>
                                 <div>
                                     <h4 className="text-lg font-semibold">Parametric Triggers</h4>

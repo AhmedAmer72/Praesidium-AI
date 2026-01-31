@@ -9,6 +9,7 @@ import { ethers } from 'ethers';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
+import CoverageCapacity from '../components/CoverageCapacity';
 import { useContract } from '../hooks/useContract';
 import { usePriceOracle } from '../hooks/usePriceOracle';
 import { usePoolAPY } from '../hooks/usePoolAPY';
@@ -344,10 +345,6 @@ const LiquidityPool = () => {
                 <span className="text-gray-400">Total Liquidity</span>
                 <span>$<AnimatedCounter to={poolBalance} /></span>
              </div>
-             <div className="flex justify-between">
-                <span className="text-gray-400">Utilization</span>
-                <span><AnimatedCounter to={63.5} precision={1}/>%</span>
-             </div>
           </div>
           <h4 className="font-semibold mb-4">Asset Distribution</h4>
           <div className="h-64">
@@ -365,6 +362,9 @@ const LiquidityPool = () => {
             </ResponsiveContainer>
           </div>
         </Card>
+
+        {/* Coverage Capacity */}
+        <CoverageCapacity />
 
       </div>
     </div>

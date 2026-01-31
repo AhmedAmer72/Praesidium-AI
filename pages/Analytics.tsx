@@ -12,6 +12,7 @@ import {
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
+import CoverageCapacity from '../components/CoverageCapacity';
 import { useProtocolMetrics } from '../hooks/useProtocolMetrics';
 import { usePoolAPY } from '../hooks/usePoolAPY';
 import { usePriceOracle } from '../hooks/usePriceOracle';
@@ -278,39 +279,44 @@ const Analytics: React.FC = () => {
         </Card>
       </div>
 
-      {/* Pool Stats */}
-      <Card className="p-6">
-        <h3 className="text-xl font-semibold text-white mb-4">Liquidity Pool Performance</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div>
-            <p className="text-gray-400 text-sm">Pool Balance</p>
-            <p className="text-2xl font-bold text-white">
-              {metrics.poolBalance.toFixed(4)} POL
-            </p>
-            <p className="text-gray-500 text-sm">
-              ${(metrics.poolBalance * ethUsdPrice).toFixed(2)}
-            </p>
+      {/* Coverage Capacity Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <CoverageCapacity />
+        
+        {/* Pool Stats */}
+        <Card className="p-6">
+          <h3 className="text-xl font-semibold text-white mb-4">Liquidity Pool Performance</h3>
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <p className="text-gray-400 text-sm">Pool Balance</p>
+              <p className="text-2xl font-bold text-white">
+                {metrics.poolBalance.toFixed(4)} POL
+              </p>
+              <p className="text-gray-500 text-sm">
+                ${(metrics.poolBalance * ethUsdPrice).toFixed(2)}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-400 text-sm">Total Deposits</p>
+              <p className="text-2xl font-bold text-green-400">
+                {metrics.totalLPDeposits.toFixed(4)} POL
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-400 text-sm">7-Day APY</p>
+              <p className="text-2xl font-bold text-yellow-400">
+                {sevenDayAPY.toFixed(2)}%
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-400 text-sm">Utilization Rate</p>
+              <p className="text-2xl font-bold text-blue-400">
+                {utilizationRate.toFixed(1)}%
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-gray-400 text-sm">Total Deposits</p>
-            <p className="text-2xl font-bold text-green-400">
-              {metrics.totalLPDeposits.toFixed(4)} POL
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-400 text-sm">7-Day APY</p>
-            <p className="text-2xl font-bold text-yellow-400">
-              {sevenDayAPY.toFixed(2)}%
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-400 text-sm">Utilization Rate</p>
-            <p className="text-2xl font-bold text-blue-400">
-              {utilizationRate.toFixed(1)}%
-            </p>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 };
