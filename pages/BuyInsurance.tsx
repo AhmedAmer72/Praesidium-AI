@@ -80,9 +80,30 @@ const BuyInsurance = () => {
       let tx;
       let retries = 3;
       
-      // Get current gas prices from the network
+      // Get current gas prices - use legacy gasPrice as fallback for RPC compatibility
       const provider = contract.runner?.provider;
-      const feeData = await provider?.getFeeData();
+      let gasOptions: any = { 
+        value: premiumWei, 
+        gasLimit: 500000 
+      };
+      
+      try {
+        const feeData = await provider?.getFeeData();
+        if (feeData?.maxFeePerGas && feeData?.maxPriorityFeePerGas) {
+          // EIP-1559 pricing
+          gasOptions.maxFeePerGas = feeData.maxFeePerGas * 2n;
+          gasOptions.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas * 2n;
+        } else if (feeData?.gasPrice) {
+          // Legacy pricing fallback
+          gasOptions.gasPrice = feeData.gasPrice * 2n;
+        } else {
+          // Final fallback
+          gasOptions.gasPrice = ethers.parseUnits("100", "gwei");
+        }
+      } catch (gasError) {
+        console.log('Gas estimation failed, using legacy pricing');
+        gasOptions.gasPrice = ethers.parseUnits("100", "gwei");
+      }
       
       while (retries > 0) {
         try {
@@ -92,12 +113,7 @@ const BuyInsurance = () => {
             coverageWei,
             duration,
             protocol.name,
-            { 
-              value: premiumWei, 
-              gasLimit: 500000,
-              maxFeePerGas: feeData?.maxFeePerGas ? feeData.maxFeePerGas * 2n : ethers.parseUnits("100", "gwei"),
-              maxPriorityFeePerGas: feeData?.maxPriorityFeePerGas ? feeData.maxPriorityFeePerGas * 2n : ethers.parseUnits("50", "gwei")
-            }
+            gasOptions
           );
           break; // Success, exit retry loop
         } catch (txError: any) {
@@ -127,27 +143,41 @@ const BuyInsurance = () => {
         duration: 30000
       });
       
-      // Wait for confirmation with timeout - but don't fail if timeout
+      // Wait for confirmation with timeout
+      let receipt;
       try {
-        const receipt = await Promise.race([
+        receipt = await Promise.race([
           tx.wait(1), // Wait for 1 confirmation
           new Promise((_, reject) => 
             setTimeout(() => reject(new Error('Transaction confirmation timeout')), 90000)
           )
-        ]);
+        ]) as ethers.TransactionReceipt | null;
+        
+        // Check if transaction was reverted
+        if (receipt && receipt.status === 0) {
+          throw new Error('Transaction was reverted by the contract. The policy parameters may be invalid or the contract rejected the request.');
+        }
+        
       } catch (waitError: any) {
-        // If we timeout waiting for confirmation, the tx was still sent successfully
-        // Just proceed - the policy will appear once confirmed
+        // Check if this is a revert error
+        if (waitError.message?.includes('reverted') || waitError.message?.includes('CALL_EXCEPTION')) {
+          throw new Error('Transaction failed: Contract execution reverted. Please check policy parameters.');
+        }
+        // If we timeout waiting for confirmation, the tx was still sent
+        // But we should warn the user to verify on explorer
         addNotification({
           type: 'warning',
           title: 'Confirmation Pending',
-          message: 'Transaction sent! Confirmation is taking longer than usual. Your policy will appear on the dashboard once confirmed.',
+          message: 'Transaction sent but confirmation is slow. Please check Polygonscan to verify the transaction status.',
           txHash: tx.hash,
           duration: 15000
         });
+        // Don't proceed to success - return early
+        setProcessing(false);
+        return;
       }
       
-      // Transaction was sent successfully - consider it a success
+      // Transaction confirmed successfully
       setIsComplete(true);
       playSuccess();
       notifyPolicyPurchased(protocol.name, coverage, tx.hash);

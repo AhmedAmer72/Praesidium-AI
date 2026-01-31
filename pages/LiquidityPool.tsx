@@ -138,19 +138,36 @@ const LiquidityPool = () => {
       
       const depositAmount = ethers.parseUnits(amount, "ether");
       
-      // Get current gas prices from the network
+      // Get current gas prices - use legacy gasPrice as fallback for RPC compatibility
       const provider = contract.runner?.provider;
-      const feeData = await provider?.getFeeData();
-      
-      const tx = await contract.deposit({ 
+      let gasOptions: any = { 
         value: depositAmount, 
-        gasLimit: 250000,
-        maxFeePerGas: feeData?.maxFeePerGas ? feeData.maxFeePerGas * 2n : ethers.parseUnits("100", "gwei"),
-        maxPriorityFeePerGas: feeData?.maxPriorityFeePerGas ? feeData.maxPriorityFeePerGas * 2n : ethers.parseUnits("50", "gwei")
-      });
+        gasLimit: 250000 
+      };
       
-      // Wait for confirmation
-      await tx.wait(1);
+      try {
+        const feeData = await provider?.getFeeData();
+        if (feeData?.maxFeePerGas && feeData?.maxPriorityFeePerGas) {
+          gasOptions.maxFeePerGas = feeData.maxFeePerGas * 2n;
+          gasOptions.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas * 2n;
+        } else if (feeData?.gasPrice) {
+          gasOptions.gasPrice = feeData.gasPrice * 2n;
+        } else {
+          gasOptions.gasPrice = ethers.parseUnits("100", "gwei");
+        }
+      } catch (gasError) {
+        console.log('Gas estimation failed, using legacy pricing');
+        gasOptions.gasPrice = ethers.parseUnits("100", "gwei");
+      }
+      
+      const tx = await contract.deposit(gasOptions);
+      
+      // Wait for confirmation and check status
+      const receipt = await tx.wait(1);
+      if (receipt && receipt.status === 0) {
+        throw new Error('Transaction was reverted by the contract');
+      }
+      
       notifyDeposit(parseFloat(amount), tx.hash);
       
       setAmount('');
@@ -181,17 +198,35 @@ const LiquidityPool = () => {
       
       const withdrawShares = ethers.parseUnits(amount, "ether");
       
-      // Get current gas prices from the network
+      // Get current gas prices - use legacy gasPrice as fallback for RPC compatibility
       const provider = contract.runner?.provider;
-      const feeData = await provider?.getFeeData();
+      let gasOptions: any = { 
+        gasLimit: 250000 
+      };
       
-      const tx = await contract.withdraw(withdrawShares, { 
-        gasLimit: 250000,
-        maxFeePerGas: feeData?.maxFeePerGas ? feeData.maxFeePerGas * 2n : ethers.parseUnits("100", "gwei"),
-        maxPriorityFeePerGas: feeData?.maxPriorityFeePerGas ? feeData.maxPriorityFeePerGas * 2n : ethers.parseUnits("50", "gwei")
-      });
+      try {
+        const feeData = await provider?.getFeeData();
+        if (feeData?.maxFeePerGas && feeData?.maxPriorityFeePerGas) {
+          gasOptions.maxFeePerGas = feeData.maxFeePerGas * 2n;
+          gasOptions.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas * 2n;
+        } else if (feeData?.gasPrice) {
+          gasOptions.gasPrice = feeData.gasPrice * 2n;
+        } else {
+          gasOptions.gasPrice = ethers.parseUnits("100", "gwei");
+        }
+      } catch (gasError) {
+        console.log('Gas estimation failed, using legacy pricing');
+        gasOptions.gasPrice = ethers.parseUnits("100", "gwei");
+      }
       
-      await tx.wait(1);
+      const tx = await contract.withdraw(withdrawShares, gasOptions);
+      
+      // Wait for confirmation and check status
+      const receipt = await tx.wait(1);
+      if (receipt && receipt.status === 0) {
+        throw new Error('Transaction was reverted by the contract');
+      }
+      
       notifyWithdraw(parseFloat(amount), tx.hash);
       
       setAmount('');
