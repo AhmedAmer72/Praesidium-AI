@@ -80,29 +80,37 @@ const BuyInsurance = () => {
       let tx;
       let retries = 3;
       
-      // Get current gas prices - use legacy gasPrice as fallback for RPC compatibility
-      const provider = contract.runner?.provider;
+      // Use simple legacy gas pricing to avoid RPC compatibility issues
+      // MetaMask will estimate the actual gas price needed
       let gasOptions: any = { 
         value: premiumWei, 
         gasLimit: 500000 
       };
       
+      // Log the transaction parameters for debugging
+      console.log('Creating policy with params:', {
+        holder: address,
+        premium: premiumWei.toString(),
+        coverage: coverageWei.toString(),
+        duration: duration,
+        protocol: protocol.name,
+        value: premiumWei.toString()
+      });
+      
+      // Try to simulate the call first to catch errors before sending
       try {
-        const feeData = await provider?.getFeeData();
-        if (feeData?.maxFeePerGas && feeData?.maxPriorityFeePerGas) {
-          // EIP-1559 pricing
-          gasOptions.maxFeePerGas = feeData.maxFeePerGas * 2n;
-          gasOptions.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas * 2n;
-        } else if (feeData?.gasPrice) {
-          // Legacy pricing fallback
-          gasOptions.gasPrice = feeData.gasPrice * 2n;
-        } else {
-          // Final fallback
-          gasOptions.gasPrice = ethers.parseUnits("100", "gwei");
-        }
-      } catch (gasError) {
-        console.log('Gas estimation failed, using legacy pricing');
-        gasOptions.gasPrice = ethers.parseUnits("100", "gwei");
+        await contract.createPolicy.staticCall(
+          address,
+          premiumWei,
+          coverageWei,
+          duration,
+          protocol.name,
+          { value: premiumWei }
+        );
+      } catch (simulateError: any) {
+        console.error('Contract simulation failed:', simulateError);
+        const reason = simulateError.reason || simulateError.message || 'Unknown error';
+        throw new Error(`Contract will reject this transaction: ${reason}`);
       }
       
       while (retries > 0) {

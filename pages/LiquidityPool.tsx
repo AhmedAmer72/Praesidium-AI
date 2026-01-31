@@ -138,27 +138,13 @@ const LiquidityPool = () => {
       
       const depositAmount = ethers.parseUnits(amount, "ether");
       
-      // Get current gas prices - use legacy gasPrice as fallback for RPC compatibility
-      const provider = contract.runner?.provider;
-      let gasOptions: any = { 
+      // Simple gas options - let MetaMask handle gas pricing
+      const gasOptions: any = { 
         value: depositAmount, 
         gasLimit: 250000 
       };
       
-      try {
-        const feeData = await provider?.getFeeData();
-        if (feeData?.maxFeePerGas && feeData?.maxPriorityFeePerGas) {
-          gasOptions.maxFeePerGas = feeData.maxFeePerGas * 2n;
-          gasOptions.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas * 2n;
-        } else if (feeData?.gasPrice) {
-          gasOptions.gasPrice = feeData.gasPrice * 2n;
-        } else {
-          gasOptions.gasPrice = ethers.parseUnits("100", "gwei");
-        }
-      } catch (gasError) {
-        console.log('Gas estimation failed, using legacy pricing');
-        gasOptions.gasPrice = ethers.parseUnits("100", "gwei");
-      }
+      console.log('Depositing:', depositAmount.toString());
       
       const tx = await contract.deposit(gasOptions);
       
@@ -198,26 +184,12 @@ const LiquidityPool = () => {
       
       const withdrawShares = ethers.parseUnits(amount, "ether");
       
-      // Get current gas prices - use legacy gasPrice as fallback for RPC compatibility
-      const provider = contract.runner?.provider;
-      let gasOptions: any = { 
+      // Simple gas options - let MetaMask handle gas pricing
+      const gasOptions: any = { 
         gasLimit: 250000 
       };
       
-      try {
-        const feeData = await provider?.getFeeData();
-        if (feeData?.maxFeePerGas && feeData?.maxPriorityFeePerGas) {
-          gasOptions.maxFeePerGas = feeData.maxFeePerGas * 2n;
-          gasOptions.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas * 2n;
-        } else if (feeData?.gasPrice) {
-          gasOptions.gasPrice = feeData.gasPrice * 2n;
-        } else {
-          gasOptions.gasPrice = ethers.parseUnits("100", "gwei");
-        }
-      } catch (gasError) {
-        console.log('Gas estimation failed, using legacy pricing');
-        gasOptions.gasPrice = ethers.parseUnits("100", "gwei");
-      }
+      console.log('Withdrawing shares:', withdrawShares.toString());
       
       const tx = await contract.withdraw(withdrawShares, gasOptions);
       

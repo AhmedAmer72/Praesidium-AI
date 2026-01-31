@@ -287,23 +287,8 @@ const Claims = () => {
       // Submit claim on-chain using V2's submitClaim function
       if (contract) {
         try {
-          // Get current gas prices - use legacy gasPrice as fallback for RPC compatibility
-          const provider = contract.runner?.provider;
-          let gasOptions: any = { gasLimit: 350000 };
-          
-          try {
-            const feeData = await provider?.getFeeData();
-            if (feeData?.maxFeePerGas && feeData?.maxPriorityFeePerGas) {
-              gasOptions.maxFeePerGas = feeData.maxFeePerGas * 2n;
-              gasOptions.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas * 2n;
-            } else if (feeData?.gasPrice) {
-              gasOptions.gasPrice = feeData.gasPrice * 2n;
-            } else {
-              gasOptions.gasPrice = ethers.parseUnits("100", "gwei");
-            }
-          } catch (gasError) {
-            gasOptions.gasPrice = ethers.parseUnits("100", "gwei");
-          }
+          // Simple gas options - let MetaMask handle gas pricing
+          const gasOptions: any = { gasLimit: 350000 };
           
           const tx = await contract.submitClaim(
             selectedPolicy,
@@ -368,23 +353,8 @@ const Claims = () => {
       // V2 contract uses approveClaim for on-chain approval
       if (contract) {
         try {
-          // Get current gas prices - use legacy gasPrice as fallback for RPC compatibility
-          const provider = contract.runner?.provider;
-          let gasOptions: any = { gasLimit: 350000 };
-          
-          try {
-            const feeData = await provider?.getFeeData();
-            if (feeData?.maxFeePerGas && feeData?.maxPriorityFeePerGas) {
-              gasOptions.maxFeePerGas = feeData.maxFeePerGas * 2n;
-              gasOptions.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas * 2n;
-            } else if (feeData?.gasPrice) {
-              gasOptions.gasPrice = feeData.gasPrice * 2n;
-            } else {
-              gasOptions.gasPrice = ethers.parseUnits("100", "gwei");
-            }
-          } catch (gasError) {
-            gasOptions.gasPrice = ethers.parseUnits("100", "gwei");
-          }
+          // Simple gas options - let MetaMask handle gas pricing
+          const gasOptions: any = { gasLimit: 350000 };
           
           // For V2, we need to get the on-chain claim ID
           // For now, use claimPolicy as fallback if available
