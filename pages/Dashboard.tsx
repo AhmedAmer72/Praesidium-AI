@@ -11,6 +11,7 @@ import Gauge from '../components/ui/Gauge';
 import SparklineChart from '../components/ui/SparklineChart';
 import Button from '../components/ui/Button';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
+import TransactionHistory from '../components/TransactionHistory';
 import { mockProtocols } from '../constants';
 import { useContract } from '../hooks/useContract';
 import { usePriceOracle } from '../hooks/usePriceOracle';
@@ -319,6 +320,11 @@ const Dashboard = () => {
                   </Link>
                 </div>
             </Card>
+        </motion.section>
+
+        <motion.section variants={itemVariants}>
+            <h2 className="text-2xl font-orbitron mb-4">Transaction History</h2>
+            <TransactionHistory maxItems={5} />
         </motion.section>
 
         <motion.section variants={itemVariants}>

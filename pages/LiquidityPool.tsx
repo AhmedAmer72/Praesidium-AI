@@ -11,6 +11,7 @@ import Button from '../components/ui/Button';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
 import { useContract } from '../hooks/useContract';
 import { usePriceOracle } from '../hooks/usePriceOracle';
+import { usePoolAPY } from '../hooks/usePoolAPY';
 import { CONTRACT_ADDRESSES } from '../constants';
 import { useNotification } from '../context/NotificationContext';
 
@@ -25,6 +26,7 @@ const LiquidityPool = () => {
   const { isConnected, address } = useAccount();
   const { getLiquidityContract, connectWallet } = useContract();
   const { ethUsdPrice, ethToUsd } = usePriceOracle();
+  const { currentAPY, apy7Day, apy30Day, isLoading: apyLoading } = usePoolAPY();
   const { notifyDeposit, notifyWithdraw, notifyError } = useNotification();
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
   const [amount, setAmount] = useState('');
@@ -39,7 +41,7 @@ const LiquidityPool = () => {
     if (isConnected && address) {
       loadPoolData();
     }
-  }, [isConnected, address]);
+  }, [isConnected, address, currentAPY]);
 
   const loadPoolData = async () => {
     setLoading(true);
@@ -103,8 +105,9 @@ const LiquidityPool = () => {
       setUserBalance(ethToUsd(userBalanceEth));
       setUserShares(poolSharePercent);
       
-      // Calculate earnings (simplified - in real app would track deposits vs current value)
-      const estimatedEarnings = ethToUsd(userBalanceEth * 0.0875); // 8.75% APY
+      // Calculate earnings using real APY from the pool
+      const apyRate = currentAPY / 100; // Convert percentage to decimal
+      const estimatedEarnings = ethToUsd(userBalanceEth * apyRate);
       setUserEarnings(estimatedEarnings);
       
     } catch (error) {
@@ -237,9 +240,18 @@ const LiquidityPool = () => {
                 className="text-7xl font-orbitron my-2"
                 style={{ textShadow: '0 0 10px #A855F7, 0 0 20px #A855F7, 0 0 30px #A855F7' }}
             >
-                <AnimatedCounter to={8.75} precision={2} />%
+                {apyLoading ? (
+                  <span className="animate-pulse">---</span>
+                ) : (
+                  <><AnimatedCounter to={currentAPY} precision={2} />%</>
+                )}
             </p>
             <p className="text-gray-300">Earn yield by providing liquidity to the insurance pool.</p>
+            {apy7Day !== currentAPY && (
+              <p className="text-xs text-gray-500 mt-2">
+                7-Day: {apy7Day.toFixed(2)}% | 30-Day: {apy30Day.toFixed(2)}%
+              </p>
+            )}
           </div>
         </Card>
 

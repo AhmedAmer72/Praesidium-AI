@@ -28,6 +28,7 @@ import Claims from './pages/Claims';
 import NotFound from './pages/NotFound';
 import Docs from './pages/Docs';
 import TestPage from './pages/TestPage';
+import Analytics from './pages/Analytics';
 import SkeletonLoader from './components/ui/SkeletonLoader';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -116,6 +117,11 @@ const PageRoutes = () => {
         <Route path="/docs" element={
           <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}>
             <Docs />
+          </motion.div>
+        } />
+        <Route path="/analytics" element={
+          <motion.div initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition}>
+            <Analytics />
           </motion.div>
         } />
         <Route path="/test" element={
