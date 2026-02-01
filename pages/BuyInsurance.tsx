@@ -36,11 +36,15 @@ const BuyInsurance = () => {
   const { availableCapacity, capacityStatus, utilizationRatio, loading: capacityLoading } = useCoverageCapacity();
   const { notifyPolicyPurchased, notifyError, addNotification } = useNotification();
 
+  // TODO: Set to false for production - enables capacity checks
+  const TESTING_MODE = true;
+
   // Calculate coverage in POL for capacity check
   const coverageInPol = useMemo(() => usdToEth(coverage), [coverage, usdToEth]);
   
-  // Check if coverage exceeds available capacity
+  // Check if coverage exceeds available capacity (disabled in testing mode)
   const exceedsCapacity = useMemo(() => {
+    if (TESTING_MODE) return false; // Bypass for testing
     if (capacityLoading) return false;
     return coverageInPol > availableCapacity;
   }, [coverageInPol, availableCapacity, capacityLoading]);
@@ -58,8 +62,8 @@ const BuyInsurance = () => {
 
   const nextStep = () => {
     playClick();
-    // Don't proceed if coverage exceeds capacity
-    if (currentStep === 0 && exceedsCapacity) {
+    // Don't proceed if coverage exceeds capacity (disabled in testing mode)
+    if (!TESTING_MODE && currentStep === 0 && exceedsCapacity) {
       notifyError(`Coverage exceeds pool capacity. Maximum available: $${maxCoverageUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}`);
       return;
     }
@@ -328,12 +332,12 @@ const BuyInsurance = () => {
                                       onChange={e => setCoverage(parseInt(e.target.value))} 
                                       className="w-full" 
                                     />
-                                    <div className={`text-center text-2xl font-orbitron mt-2 ${exceedsCapacity ? 'text-red-400' : ''}`}>
+                                    <div className={`text-center text-2xl font-orbitron mt-2 ${exceedsCapacity && !TESTING_MODE ? 'text-red-400' : ''}`}>
                                       ${coverage.toLocaleString()}
                                     </div>
                                     
-                                    {/* Capacity Warning */}
-                                    {exceedsCapacity && (
+                                    {/* Capacity Warning - hidden in testing mode */}
+                                    {exceedsCapacity && !TESTING_MODE && (
                                       <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
                                         <div className="flex items-start gap-2">
                                           <FiAlertTriangle className="text-red-400 mt-0.5 flex-shrink-0" />
@@ -347,11 +351,18 @@ const BuyInsurance = () => {
                                       </div>
                                     )}
                                     
+                                    {/* Testing Mode Indicator */}
+                                    {TESTING_MODE && (
+                                      <div className="mt-3 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-center">
+                                        <p className="text-yellow-400 text-xs">🧪 Testing Mode - Capacity checks disabled</p>
+                                      </div>
+                                    )}
+                                    
                                     {/* Capacity Info */}
-                                    {!capacityLoading && (
+                                    {!capacityLoading && !TESTING_MODE && (
                                       <div className="mt-3 text-xs text-gray-500 text-center">
-                                        Pool utilization: {utilizationRatio.toFixed(1)}% | 
-                                        Available: ${(availableCapacity * ethUsdPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                        Pool utilization: {(utilizationRatio ?? 0).toFixed(1)}% | 
+                                        Available: ${((availableCapacity ?? 0) * (ethUsdPrice ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                                       </div>
                                     )}
                                 </div>
