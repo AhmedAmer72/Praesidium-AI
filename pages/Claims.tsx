@@ -12,6 +12,10 @@ import { useContract } from '../hooks/useContract';
 import { usePriceOracle } from '../hooks/usePriceOracle';
 import { useNotification } from '../context/NotificationContext';
 import { OnChainPolicy, OnChainClaim, ClaimStatus, TriggerType } from '../types';
+import { ACTIVE_NETWORK } from '../constants';
+
+// Helper to get the correct block explorer URL
+const getExplorerUrl = () => ACTIVE_NETWORK === 'polygon' ? 'https://polygonscan.com' : 'https://amoy.polygonscan.com';
 
 // Local Claim interface for UI state (extends on-chain claim)
 interface LocalClaim {
@@ -691,7 +695,7 @@ const Claims = () => {
                           )}
                           {claim.txHash && (
                             <a
-                              href={`https://amoy.polygonscan.com/tx/${claim.txHash}`}
+                              href={`${getExplorerUrl()}/tx/${claim.txHash}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 text-glow-blue text-xs hover:underline"

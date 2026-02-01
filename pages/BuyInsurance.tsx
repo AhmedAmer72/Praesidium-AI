@@ -11,7 +11,7 @@ import { mockProtocols } from '../constants';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import useSound from '../hooks/useSound';
-import { useContract, switchToAmoyWithGoodRPC } from '../hooks/useContract';
+import { useContract } from '../hooks/useContract';
 import { usePriceOracle } from '../hooks/usePriceOracle';
 import { useCoverageCapacity } from '../hooks/useCoverageCapacity';
 import { useNotification } from '../context/NotificationContext';
@@ -84,6 +84,38 @@ const BuyInsurance = () => {
     try {
       await connectWallet();
       
+      // Verify user is on Polygon Mainnet (chainId 137)
+      if (window.ethereum) {
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        const currentChainId = parseInt(chainId, 16);
+        
+        if (currentChainId !== 137) {
+          console.log(`Wrong network detected: chainId ${currentChainId}, switching to Polygon Mainnet...`);
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x89' }], // 137 in hex
+            });
+          } catch (switchError: any) {
+            // Chain not added, try to add it
+            if (switchError.code === 4902) {
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                  chainId: '0x89',
+                  chainName: 'Polygon Mainnet',
+                  nativeCurrency: { name: 'POL', symbol: 'POL', decimals: 18 },
+                  rpcUrls: ['https://polygon-bor-rpc.publicnode.com'],
+                  blockExplorerUrls: ['https://polygonscan.com']
+                }]
+              });
+            } else {
+              throw switchError;
+            }
+          }
+        }
+      }
+      
       const contract = getInsuranceV2Contract();
       
       if (!contract) {
@@ -92,9 +124,9 @@ const BuyInsurance = () => {
         return;
       }
       
-      // For testnet, use a small fixed premium to make testing easier
+      // Demo mode: use a small fixed premium to make testing easier
       // In production, this would use the actual calculated premium from oracle
-      const testPremiumEth = "0.001"; // 0.001 POL for testing
+      const testPremiumEth = "0.001"; // 0.001 POL for demo
       const premiumWei = ethers.parseUnits(testPremiumEth, "ether");
       
       // Use live price for coverage conversion
@@ -226,18 +258,11 @@ const BuyInsurance = () => {
       } else if (error.message?.includes('insufficient funds')) {
         errorMessage = 'Insufficient funds for this transaction.';
       } else if (error.message?.includes('Internal JSON-RPC error')) {
-        errorMessage = 'Network error. Please make sure you are connected to Polygon Amoy testnet.';
+        errorMessage = 'Network error. Please make sure you are connected to Polygon Mainnet (Chain ID 137).';
       } else if (error.message?.includes('timeout')) {
         errorMessage = 'Transaction is taking longer than expected. Check your wallet for status.';
       } else if (error.message?.includes('429') || error.message?.includes('rate limit')) {
-        errorMessage = 'RPC rate limited. Trying to switch to a better RPC...';
-        // Try to switch to a better RPC
-        const switched = await switchToAmoyWithGoodRPC();
-        if (switched) {
-          errorMessage = 'Switched to a better RPC. Please try again.';
-        } else {
-          errorMessage = 'RPC rate limited. Please wait 30 seconds and try again, or manually change your MetaMask RPC to: https://polygon-amoy-bor-rpc.publicnode.com';
-        }
+        errorMessage = 'RPC rate limited. Please wait a moment and try again.';
       } else if (error.reason) {
         errorMessage = error.reason;
       }
@@ -383,7 +408,7 @@ const BuyInsurance = () => {
                                     <div className="flex justify-between"><span className="text-gray-400">Premium Rate:</span><span>{protocol.premiumRate}%</span></div>
                                     <hr className="border-gray-700"/>
                                     <div className="flex justify-between text-lg font-bold"><span className="text-gray-400">Total Premium:</span><span className="text-glow-purple">0.001 POL</span></div>
-                                    <p className="text-xs text-yellow-400 mt-2">⚠️ Testnet mode: Using fixed 0.001 POL premium for testing</p>
+                                    <p className="text-xs text-yellow-400 mt-2">⚠️ Demo mode: Using fixed 0.001 POL premium for demonstration</p>
                                 </div>
                                 <p className="text-xs text-gray-500 text-center">Premium is for a 1-year coverage period. Review details before confirming.</p>
                             </div>
