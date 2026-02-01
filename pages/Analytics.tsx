@@ -290,28 +290,28 @@ const Analytics: React.FC = () => {
             <div>
               <p className="text-gray-400 text-sm">Pool Balance</p>
               <p className="text-2xl font-bold text-white">
-                {metrics.poolBalance.toFixed(4)} POL
+                {(metrics.poolBalance ?? 0).toFixed(4)} POL
               </p>
               <p className="text-gray-500 text-sm">
-                ${(metrics.poolBalance * ethUsdPrice).toFixed(2)}
+                ${((metrics.poolBalance ?? 0) * (ethUsdPrice ?? 0)).toFixed(2)}
               </p>
             </div>
             <div>
               <p className="text-gray-400 text-sm">Total Deposits</p>
               <p className="text-2xl font-bold text-green-400">
-                {metrics.totalLPDeposits.toFixed(4)} POL
+                {(metrics.totalLPDeposits ?? 0).toFixed(4)} POL
               </p>
             </div>
             <div>
               <p className="text-gray-400 text-sm">7-Day APY</p>
               <p className="text-2xl font-bold text-yellow-400">
-                {sevenDayAPY.toFixed(2)}%
+                {(sevenDayAPY ?? 0).toFixed(2)}%
               </p>
             </div>
             <div>
               <p className="text-gray-400 text-sm">Utilization Rate</p>
               <p className="text-2xl font-bold text-blue-400">
-                {utilizationRate.toFixed(1)}%
+                {(utilizationRate ?? 0).toFixed(1)}%
               </p>
             </div>
           </div>

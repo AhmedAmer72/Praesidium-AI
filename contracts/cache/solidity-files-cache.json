@@ -1,8 +1,80 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "E:\\Praesidium-AI\\contracts\\contracts\\LiquidityPool.sol": {
-      "lastModificationDate": 1765821595179,
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\contracts\\CompleteLiquidityPool.sol": {
+      "lastModificationDate": 1762393701609,
+      "contentHash": "7700354c604c7e42dbba0625a4eae7ca",
+      "sourceName": "contracts/CompleteLiquidityPool.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "CompleteLiquidityPool"
+      ]
+    },
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\contracts\\LiquidityDeposit.sol": {
+      "lastModificationDate": 1762393425807,
+      "contentHash": "1cf037a425686371377e3f3d89ef16ee",
+      "sourceName": "contracts/LiquidityDeposit.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "LiquidityDeposit"
+      ]
+    },
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\contracts\\LiquidityPool.sol": {
+      "lastModificationDate": 1765824762754,
       "contentHash": "035bc7bc0062042ff167dfcceb4289f1",
       "sourceName": "contracts/LiquidityPool.sol",
       "solcConfig": {
@@ -40,45 +112,7 @@
         "LiquidityPool"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
-      "lastModificationDate": 1762305359005,
-      "contentHash": "d3c790edc9ccf808a17c5a6cd13614fd",
-      "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../utils/Context.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "Ownable"
-      ]
-    },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\ERC20.sol": {
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\ERC20.sol": {
       "lastModificationDate": 1762305357877,
       "contentHash": "59dfce11284f2636db261df9b6a18f81",
       "sourceName": "@openzeppelin/contracts/token/ERC20/ERC20.sol",
@@ -119,10 +153,10 @@
         "ERC20"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Context.sol": {
-      "lastModificationDate": 1762305357062,
-      "contentHash": "67bfbc07588eb8683b3fd8f6f909563e",
-      "sourceName": "@openzeppelin/contracts/utils/Context.sol",
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
+      "lastModificationDate": 1762305359005,
+      "contentHash": "d3c790edc9ccf808a17c5a6cd13614fd",
+      "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
@@ -147,15 +181,17 @@
           }
         }
       },
-      "imports": [],
+      "imports": [
+        "../utils/Context.sol"
+      ],
       "versionPragmas": [
         "^0.8.20"
       ],
       "artifacts": [
-        "Context"
+        "Ownable"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\interfaces\\draft-IERC6093.sol": {
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\interfaces\\draft-IERC6093.sol": {
       "lastModificationDate": 1762305357471,
       "contentHash": "5041977bbe908de2e6ed0270447f79ad",
       "sourceName": "@openzeppelin/contracts/interfaces/draft-IERC6093.sol",
@@ -193,7 +229,43 @@
         "IERC721Errors"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\IERC20.sol": {
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Context.sol": {
+      "lastModificationDate": 1762305357062,
+      "contentHash": "67bfbc07588eb8683b3fd8f6f909563e",
+      "sourceName": "@openzeppelin/contracts/utils/Context.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "Context"
+      ]
+    },
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\IERC20.sol": {
       "lastModificationDate": 1762305358556,
       "contentHash": "9261adf6457863de3e9892f51317ec89",
       "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
@@ -229,7 +301,7 @@
         "IERC20"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\IERC20Metadata.sol": {
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\IERC20Metadata.sol": {
       "lastModificationDate": 1762305358574,
       "contentHash": "513778b30d2750f5d2b9b19bbcf748a5",
       "sourceName": "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol",
@@ -267,82 +339,7 @@
         "IERC20Metadata"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\utils\\ERC721Utils.sol": {
-      "lastModificationDate": 1762305358135,
-      "contentHash": "4cefad279a37c895b709bce2b901816e",
-      "sourceName": "@openzeppelin/contracts/token/ERC721/utils/ERC721Utils.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../IERC721Receiver.sol",
-        "../../../interfaces/draft-IERC6093.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "ERC721Utils"
-      ]
-    },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\IERC721Receiver.sol": {
-      "lastModificationDate": 1762305358737,
-      "contentHash": "d61660a41ce200e99816e4734f7fd202",
-      "sourceName": "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        ">=0.5.0"
-      ],
-      "artifacts": [
-        "IERC721Receiver"
-      ]
-    },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\ERC721.sol": {
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\ERC721.sol": {
       "lastModificationDate": 1762305358060,
       "contentHash": "522ec023bce510c30dfbf61584f5a190",
       "sourceName": "@openzeppelin/contracts/token/ERC721/ERC721.sol",
@@ -386,7 +383,7 @@
         "ERC721"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Strings.sol": {
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Strings.sol": {
       "lastModificationDate": 1762305359168,
       "contentHash": "d8f70caf0e0c77dc908176ed44812fb7",
       "sourceName": "@openzeppelin/contracts/utils/Strings.sol",
@@ -426,7 +423,7 @@
         "Strings"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\introspection\\ERC165.sol": {
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\introspection\\ERC165.sol": {
       "lastModificationDate": 1762305357716,
       "contentHash": "0906d06dca25210d4696dcef6dad2909",
       "sourceName": "@openzeppelin/contracts/utils/introspection/ERC165.sol",
@@ -464,7 +461,7 @@
         "ERC165"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\IERC721.sol": {
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\IERC721.sol": {
       "lastModificationDate": 1762305358713,
       "contentHash": "f62e11dbd302e17a5621a1438f4e054c",
       "sourceName": "@openzeppelin/contracts/token/ERC721/IERC721.sol",
@@ -502,7 +499,7 @@
         "IERC721"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\extensions\\IERC721Metadata.sol": {
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\extensions\\IERC721Metadata.sol": {
       "lastModificationDate": 1762305358728,
       "contentHash": "136c64eca25bcb8a68f43ac6605559f9",
       "sourceName": "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol",
@@ -540,7 +537,46 @@
         "IERC721Metadata"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\math\\Math.sol": {
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\utils\\ERC721Utils.sol": {
+      "lastModificationDate": 1762305358135,
+      "contentHash": "4cefad279a37c895b709bce2b901816e",
+      "sourceName": "@openzeppelin/contracts/token/ERC721/utils/ERC721Utils.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../IERC721Receiver.sol",
+        "../../../interfaces/draft-IERC6093.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "ERC721Utils"
+      ]
+    },
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\math\\Math.sol": {
       "lastModificationDate": 1762305358897,
       "contentHash": "5ec781e33d3a9ac91ffdc83d94420412",
       "sourceName": "@openzeppelin/contracts/utils/math/Math.sol",
@@ -579,7 +615,43 @@
         "Math"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SignedMath.sol": {
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SafeCast.sol": {
+      "lastModificationDate": 1762305359066,
+      "contentHash": "2adca1150f58fc6f3d1f0a0f22ee7cca",
+      "sourceName": "@openzeppelin/contracts/utils/math/SafeCast.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "SafeCast"
+      ]
+    },
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SignedMath.sol": {
       "lastModificationDate": 1762305359082,
       "contentHash": "ae3528afb8bdb0a7dcfba5b115ee8074",
       "sourceName": "@openzeppelin/contracts/utils/math/SignedMath.sol",
@@ -617,43 +689,7 @@
         "SignedMath"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SafeCast.sol": {
-      "lastModificationDate": 1762305359066,
-      "contentHash": "2adca1150f58fc6f3d1f0a0f22ee7cca",
-      "sourceName": "@openzeppelin/contracts/utils/math/SafeCast.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "SafeCast"
-      ]
-    },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Panic.sol": {
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Panic.sol": {
       "lastModificationDate": 1762305359027,
       "contentHash": "2133dc13536b4a6a98131e431fac59e1",
       "sourceName": "@openzeppelin/contracts/utils/Panic.sol",
@@ -689,7 +725,7 @@
         "Panic"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\introspection\\IERC165.sol": {
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\introspection\\IERC165.sol": {
       "lastModificationDate": 1762305358536,
       "contentHash": "7074c93b1ea0a122063f26ddd1db1032",
       "sourceName": "@openzeppelin/contracts/utils/introspection/IERC165.sol",
@@ -725,10 +761,10 @@
         "IERC165"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\contracts\\RiskOracle.sol": {
-      "lastModificationDate": 1762395137448,
-      "contentHash": "a6cf2670271f849e55be969de85ff8c2",
-      "sourceName": "contracts/RiskOracle.sol",
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\IERC721Receiver.sol": {
+      "lastModificationDate": 1762305358737,
+      "contentHash": "d61660a41ce200e99816e4734f7fd202",
+      "sourceName": "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
@@ -755,13 +791,13 @@
       },
       "imports": [],
       "versionPragmas": [
-        "^0.8.0"
+        ">=0.5.0"
       ],
       "artifacts": [
-        "RiskOracle"
+        "IERC721Receiver"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\contracts\\PraesidiumInsurance.sol": {
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\contracts\\PraesidiumInsurance.sol": {
       "lastModificationDate": 1762305850586,
       "contentHash": "d6cf6e6de6abe9c33d7a8ef81d5bb016",
       "sourceName": "contracts/PraesidiumInsurance.sol",
@@ -800,151 +836,7 @@
         "PraesidiumInsurance"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\contracts\\SimpleInsurance.sol": {
-      "lastModificationDate": 1762315506585,
-      "contentHash": "994719420718cfd93c2985bdb5eb2ded",
-      "sourceName": "contracts/SimpleInsurance.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "SimpleInsurance"
-      ]
-    },
-    "E:\\Praesidium-AI\\contracts\\contracts\\SimpleLiquidityPool.sol": {
-      "lastModificationDate": 1762372708465,
-      "contentHash": "b31de4cf659c753589f4be09dde6995d",
-      "sourceName": "contracts/SimpleLiquidityPool.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "SimpleLiquidityPool"
-      ]
-    },
-    "E:\\Praesidium-AI\\contracts\\contracts\\LiquidityDeposit.sol": {
-      "lastModificationDate": 1762393425807,
-      "contentHash": "1cf037a425686371377e3f3d89ef16ee",
-      "sourceName": "contracts/LiquidityDeposit.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "LiquidityDeposit"
-      ]
-    },
-    "E:\\Praesidium-AI\\contracts\\contracts\\CompleteLiquidityPool.sol": {
-      "lastModificationDate": 1762393701609,
-      "contentHash": "7700354c604c7e42dbba0625a4eae7ca",
-      "sourceName": "contracts/CompleteLiquidityPool.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.0"
-      ],
-      "artifacts": [
-        "CompleteLiquidityPool"
-      ]
-    },
-    "E:\\Praesidium-AI\\contracts\\contracts\\PraesidiumInsuranceV2.sol": {
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\contracts\\PraesidiumInsuranceV2.sol": {
       "lastModificationDate": 1764217503368,
       "contentHash": "b14b03de2b7d88a4d149ecbd4b927c0b",
       "sourceName": "contracts/PraesidiumInsuranceV2.sol",
@@ -983,7 +875,7 @@
         "PraesidiumInsuranceV2"
       ]
     },
-    "E:\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\ReentrancyGuard.sol": {
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\node_modules\\@openzeppelin\\contracts\\utils\\ReentrancyGuard.sol": {
       "lastModificationDate": 1762305359048,
       "contentHash": "190613e556d509d9e9a0ea43dc5d891d",
       "sourceName": "@openzeppelin/contracts/utils/ReentrancyGuard.sol",
@@ -1017,6 +909,114 @@
       ],
       "artifacts": [
         "ReentrancyGuard"
+      ]
+    },
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\contracts\\RiskOracle.sol": {
+      "lastModificationDate": 1762395137448,
+      "contentHash": "a6cf2670271f849e55be969de85ff8c2",
+      "sourceName": "contracts/RiskOracle.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "RiskOracle"
+      ]
+    },
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\contracts\\SimpleInsurance.sol": {
+      "lastModificationDate": 1762315506585,
+      "contentHash": "994719420718cfd93c2985bdb5eb2ded",
+      "sourceName": "contracts/SimpleInsurance.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "SimpleInsurance"
+      ]
+    },
+    "E:\\AKINDO\\Praesidium-AI\\contracts\\contracts\\SimpleLiquidityPool.sol": {
+      "lastModificationDate": 1762372708465,
+      "contentHash": "b31de4cf659c753589f4be09dde6995d",
+      "sourceName": "contracts/SimpleLiquidityPool.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "SimpleLiquidityPool"
       ]
     }
   }

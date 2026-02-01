@@ -108,11 +108,11 @@ const ProtocolCard = ({ protocol, isConnected }: { protocol: Protocol, isConnect
             <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                     <p className="text-gray-400">Premium</p>
-                    <p className="font-semibold text-lg">{protocol.premiumRate}% / yr</p>
+                    <p className="font-semibold text-lg">{(protocol.premiumRate ?? 0).toFixed(2)}% / yr</p>
                 </div>
                 <div>
                     <p className="text-gray-400">Max Coverage</p>
-                    <p className="font-semibold text-lg">${(protocol.coverageLimit / 1_000_000).toFixed(1)}M</p>
+                    <p className="font-semibold text-lg">${((protocol.coverageLimit ?? 0) / 1_000_000).toFixed(1)}M</p>
                 </div>
             </div>
 

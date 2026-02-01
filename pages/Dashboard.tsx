@@ -276,7 +276,7 @@ const Dashboard = () => {
                             ${Math.round(policy.coverage * 2500).toLocaleString()}
                           </td>
                           <td className="py-4 px-4 font-semibold">
-                            {policy.premium.toFixed(3)} MATIC
+                            {(policy.premium ?? 0).toFixed(3)} MATIC
                           </td>
                           <td className="py-4 px-4">
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${

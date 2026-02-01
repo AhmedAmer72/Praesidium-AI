@@ -27,7 +27,7 @@ const LiquidityPool = () => {
   const { isConnected, address } = useAccount();
   const { getLiquidityContract, connectWallet } = useContract();
   const { ethUsdPrice, ethToUsd } = usePriceOracle();
-  const { currentAPY, apy7Day, apy30Day, isLoading: apyLoading } = usePoolAPY();
+  const { currentAPY, sevenDayAPY, thirtyDayAPY, loading: apyLoading } = usePoolAPY();
   const { notifyDeposit, notifyWithdraw, notifyError } = useNotification();
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
   const [amount, setAmount] = useState('');
@@ -248,9 +248,9 @@ const LiquidityPool = () => {
                 )}
             </p>
             <p className="text-gray-300">Earn yield by providing liquidity to the insurance pool.</p>
-            {apy7Day !== currentAPY && (
+            {sevenDayAPY !== currentAPY && (sevenDayAPY != null && thirtyDayAPY != null) && (
               <p className="text-xs text-gray-500 mt-2">
-                7-Day: {apy7Day.toFixed(2)}% | 30-Day: {apy30Day.toFixed(2)}%
+                7-Day: {(sevenDayAPY ?? 0).toFixed(2)}% | 30-Day: {(thirtyDayAPY ?? 0).toFixed(2)}%
               </p>
             )}
           </div>
