@@ -19,10 +19,11 @@ module.exports = {
       chainId: 80002
     },
     polygon: {
-      url: process.env.RPC_URL_POLYGON || "https://polygon-rpc.com",
+      url: process.env.RPC_URL_POLYGON || "https://polygon-bor-rpc.publicnode.com",
       accounts: process.env.PRIV_KEY ? [process.env.PRIV_KEY] : [],
       chainId: 137,
-      gasPrice: "auto"
+      gasPrice: "auto",
+      timeout: 120000
     }
   },
   etherscan: {

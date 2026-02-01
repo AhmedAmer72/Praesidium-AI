@@ -6,8 +6,8 @@
     "PraesidiumInsuranceV2": "0x4299404F58B5e8cDCB13Fc38499F0ab85b885c53"
   },
   "polygon": {
-    "RiskOracle": "0x39e14d328EbDe66E2137925EC1A0C77bf40e584e",
-    "LiquidityPool": "0xDD51A2e9D9D5F52D40D6f248198026423CB4EF4B",
-    "PraesidiumInsuranceV2": "0xb9B8321922E489d39ca522ed610025718a1D59c7"
+    "RiskOracle": "0x41E41d1aEcb893616e8c24f32998F7c850670ABF",
+    "LiquidityPool": "0x7dE62D0fD7Eb664FF2a2514230fdB349f465db87",
+    "PraesidiumInsuranceV2": "0x657A362d009fFbCD90A94e08aa852aa8a0c5205f"
   }
 }

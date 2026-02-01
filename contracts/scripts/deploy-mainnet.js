@@ -25,15 +25,25 @@ async function main() {
   const riskOracle = await RiskOracle.deploy();
   await riskOracle.waitForDeployment();
   addresses.polygon.RiskOracle = await riskOracle.getAddress();
-  console.log("   ✅ RiskOracle:", addresses.polygon.RiskOracle);
+  // Verify bytecode
+  const oracleCode = await ethers.provider.getCode(addresses.polygon.RiskOracle);
+  console.log("   ✅ RiskOracle:", addresses.polygon.RiskOracle, "(bytecode:", oracleCode.length, ", expected ~2990)");
   
-  // 2. Deploy LiquidityPool
-  console.log("2️⃣  Deploying LiquidityPool...");
-  const LiquidityPool = await ethers.getContractFactory("LiquidityPool");
-  const liquidityPool = await LiquidityPool.deploy();
+  // Wait between deployments
+  await new Promise(resolve => setTimeout(resolve, 5000));
+  
+  // 2. Deploy SimpleLiquidityPool
+  console.log("2️⃣  Deploying SimpleLiquidityPool...");
+  const SimpleLiquidityPool = await ethers.getContractFactory("SimpleLiquidityPool");
+  const liquidityPool = await SimpleLiquidityPool.deploy();
   await liquidityPool.waitForDeployment();
   addresses.polygon.LiquidityPool = await liquidityPool.getAddress();
-  console.log("   ✅ LiquidityPool:", addresses.polygon.LiquidityPool);
+  // Verify bytecode
+  const poolCode = await ethers.provider.getCode(addresses.polygon.LiquidityPool);
+  console.log("   ✅ SimpleLiquidityPool:", addresses.polygon.LiquidityPool, "(bytecode:", poolCode.length, ", expected ~2748)");
+  
+  // Wait between deployments
+  await new Promise(resolve => setTimeout(resolve, 5000));
   
   // 3. Deploy PraesidiumInsuranceV2
   console.log("3️⃣  Deploying PraesidiumInsuranceV2...");
@@ -41,7 +51,9 @@ async function main() {
   const insurance = await Insurance.deploy();
   await insurance.waitForDeployment();
   addresses.polygon.PraesidiumInsuranceV2 = await insurance.getAddress();
-  console.log("   ✅ PraesidiumInsuranceV2:", addresses.polygon.PraesidiumInsuranceV2);
+  // Verify bytecode
+  const insCode = await ethers.provider.getCode(addresses.polygon.PraesidiumInsuranceV2);
+  console.log("   ✅ PraesidiumInsuranceV2:", addresses.polygon.PraesidiumInsuranceV2, "(bytecode:", insCode.length, ", expected ~17906)");
   
   // Save addresses
   const addressFile = path.join(__dirname, "..", "contractAddresses.json");

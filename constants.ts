@@ -11,9 +11,9 @@ export const CONTRACT_ADDRESSES = {
   },
   polygon: {
     PraesidiumInsurance: '', // Not deployed on mainnet
-    PraesidiumInsuranceV2: import.meta.env.VITE_MAINNET_PRAESIDIUM_INSURANCE_V2_ADDRESS || '0xb9B8321922E489d39ca522ed610025718a1D59c7',
-    LiquidityPool: import.meta.env.VITE_MAINNET_LIQUIDITY_POOL_ADDRESS || '0xDD51A2e9D9D5F52D40D6f248198026423CB4EF4B',
-    RiskOracle: import.meta.env.VITE_MAINNET_RISK_ORACLE_ADDRESS || '0x39e14d328EbDe66E2137925EC1A0C77bf40e584e'
+    PraesidiumInsuranceV2: import.meta.env.VITE_MAINNET_PRAESIDIUM_INSURANCE_V2_ADDRESS || '0x657A362d009fFbCD90A94e08aa852aa8a0c5205f',
+    LiquidityPool: import.meta.env.VITE_MAINNET_LIQUIDITY_POOL_ADDRESS || '0x7dE62D0fD7Eb664FF2a2514230fdB349f465db87',
+    RiskOracle: import.meta.env.VITE_MAINNET_RISK_ORACLE_ADDRESS || '0x41E41d1aEcb893616e8c24f32998F7c850670ABF'
   }
 };
 
