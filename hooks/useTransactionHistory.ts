@@ -36,6 +36,8 @@ const LIQUIDITY_ABI = [
 
 export const useTransactionHistory = () => {
   const { address, isConnected } = useAccount();
+
+  // Load cached data immediately so the UI isn't blank while fetching
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,36 +46,19 @@ export const useTransactionHistory = () => {
     return new ethers.JsonRpcProvider(getRpcUrl());
   }, []);
 
-  // Helper to query events in chunks to avoid block range limits
-  const queryEventsInChunks = async (
-    contract: ethers.Contract,
-    filter: ethers.ContractEventName,
-    fromBlock: number,
-    toBlock: number,
-    chunkSize: number = 10000
-  ): Promise<ethers.EventLog[]> => {
-    const allEvents: ethers.EventLog[] = [];
-    
-    for (let start = fromBlock; start <= toBlock; start += chunkSize) {
-      const end = Math.min(start + chunkSize - 1, toBlock);
-      try {
-        const events = await contract.queryFilter(filter, start, end);
-        allEvents.push(...(events as ethers.EventLog[]));
-      } catch (err) {
-        console.log(`Skipping blocks ${start}-${end} due to error`);
-      }
-      // Small delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
-    
-    return allEvents;
-  };
-
   const fetchTransactionHistory = useCallback(async () => {
     if (!address || !isConnected) {
       setTransactions([]);
       return;
     }
+
+    // Show cached data for this address immediately
+    try {
+      const cached = localStorage.getItem(`tx_history_${address}`);
+      if (cached) {
+        setTransactions(JSON.parse(cached));
+      }
+    } catch { /* ignore */ }
 
     setLoading(true);
     setError(null);
@@ -81,61 +66,71 @@ export const useTransactionHistory = () => {
     try {
       const provider = getProvider();
       const currentBlock = await provider.getBlockNumber();
-      // Look back ~7 days of blocks (43200 blocks/day on Polygon)
-      const blocksToLookBack = 43200 * 7;
-      const fromBlock = Math.max(0, currentBlock - blocksToLookBack);
+      // Look back ~28 hours (50,000 blocks at ~2s/block on Polygon) — fits in 1 RPC call
+      const fromBlock = Math.max(0, currentBlock - 50000);
 
       const allTransactions: Transaction[] = [];
+
+      // Helper: batch fetch block timestamps for a list of events
+      const getTimestamps = async (events: ethers.EventLog[]): Promise<Map<number, number>> => {
+        const uniqueBlocks = [...new Set(events.map(e => e.blockNumber))];
+        const blockMap = new Map<number, number>();
+        const results = await Promise.allSettled(
+          uniqueBlocks.map(bn => provider.getBlock(bn))
+        );
+        results.forEach((r, i) => {
+          if (r.status === 'fulfilled' && r.value) {
+            blockMap.set(uniqueBlocks[i], r.value.timestamp * 1000);
+          }
+        });
+        return blockMap;
+      };
+
+      // Helper: single-range event query (no chunking)
+      const queryEvents = async (contract: ethers.Contract, filter: ethers.ContractEventName) => {
+        try {
+          const events = await contract.queryFilter(filter, fromBlock, currentBlock);
+          return events as ethers.EventLog[];
+        } catch (err) {
+          console.warn('queryFilter failed:', err);
+          return [] as ethers.EventLog[];
+        }
+      };
 
       // Fetch Liquidity Pool events
       const liquidityAddress = CONTRACT_ADDRESSES[ACTIVE_NETWORK].LiquidityPool;
       if (liquidityAddress) {
         const liquidityContract = new ethers.Contract(liquidityAddress, LIQUIDITY_ABI, provider);
-        
-        try {
-          // Get Deposit events
-          const depositFilter = liquidityContract.filters.Deposited(address);
-          const depositEvents = await queryEventsInChunks(liquidityContract, depositFilter, fromBlock, currentBlock);
-          
-          for (const event of depositEvents) {
-            try {
-              const block = await event.getBlock();
-              allTransactions.push({
-                id: `deposit-${event.transactionHash}-${event.index}`,
-                type: 'deposit',
-                amount: parseFloat(ethers.formatEther(event.args[1])),
-                timestamp: block.timestamp * 1000,
-                txHash: event.transactionHash,
-                status: 'confirmed',
-                description: 'Deposited to Liquidity Pool',
-              });
-            } catch {
-              // Skip events we can't parse
-            }
-          }
 
-          // Get Withdraw events
-          const withdrawFilter = liquidityContract.filters.Withdrawn(address);
-          const withdrawEvents = await queryEventsInChunks(liquidityContract, withdrawFilter, fromBlock, currentBlock);
-          
-          for (const event of withdrawEvents) {
-            try {
-              const block = await event.getBlock();
-              allTransactions.push({
-                id: `withdraw-${event.transactionHash}-${event.index}`,
-                type: 'withdraw',
-                amount: parseFloat(ethers.formatEther(event.args[1])),
-                timestamp: block.timestamp * 1000,
-                txHash: event.transactionHash,
-                status: 'confirmed',
-                description: 'Withdrawn from Liquidity Pool',
-              });
-            } catch {
-              // Skip events we can't parse
-            }
-          }
-        } catch (err) {
-          console.log('Error fetching liquidity events:', err);
+        const [depositEvents, withdrawEvents] = await Promise.all([
+          queryEvents(liquidityContract, liquidityContract.filters.Deposited(address)),
+          queryEvents(liquidityContract, liquidityContract.filters.Withdrawn(address)),
+        ]);
+
+        const liqBlockMap = await getTimestamps([...depositEvents, ...withdrawEvents]);
+
+        for (const event of depositEvents) {
+          allTransactions.push({
+            id: `deposit-${event.transactionHash}-${event.index}`,
+            type: 'deposit',
+            amount: parseFloat(ethers.formatEther(event.args[1])),
+            timestamp: liqBlockMap.get(event.blockNumber) ?? Date.now(),
+            txHash: event.transactionHash,
+            status: 'confirmed',
+            description: 'Deposited to Liquidity Pool',
+          });
+        }
+
+        for (const event of withdrawEvents) {
+          allTransactions.push({
+            id: `withdraw-${event.transactionHash}-${event.index}`,
+            type: 'withdraw',
+            amount: parseFloat(ethers.formatEther(event.args[1])),
+            timestamp: liqBlockMap.get(event.blockNumber) ?? Date.now(),
+            txHash: event.transactionHash,
+            status: 'confirmed',
+            description: 'Withdrawn from Liquidity Pool',
+          });
         }
       }
 
@@ -143,90 +138,79 @@ export const useTransactionHistory = () => {
       const insuranceAddress = CONTRACT_ADDRESSES[ACTIVE_NETWORK].PraesidiumInsuranceV2;
       if (insuranceAddress) {
         const insuranceContract = new ethers.Contract(insuranceAddress, INSURANCE_V2_ABI, provider);
-        
-        try {
-          // Get PolicyCreated events
-          const policyFilter = insuranceContract.filters.PolicyCreated(null, address);
-          const policyEvents = await queryEventsInChunks(insuranceContract, policyFilter, fromBlock, currentBlock);
-          
-          for (const event of policyEvents) {
-            try {
-              const block = await event.getBlock();
-              allTransactions.push({
-                id: `policy-${event.transactionHash}-${event.index}`,
-                type: 'policy_purchase',
-                amount: parseFloat(ethers.formatEther(event.args[2])),
-                timestamp: block.timestamp * 1000,
-                txHash: event.transactionHash,
-                status: 'confirmed',
-                protocol: event.args[4],
-                policyId: event.args[0].toString(),
-                description: `Purchased ${event.args[4]} Insurance Policy`,
-              });
-            } catch {
-              // Skip events we can't parse
-            }
-          }
 
-          // Get ClaimSubmitted events
-          const claimFilter = insuranceContract.filters.ClaimSubmitted(null, null, address);
-          const claimEvents = await queryEventsInChunks(insuranceContract, claimFilter, fromBlock, currentBlock);
-          
-          for (const event of claimEvents) {
-            try {
-              const block = await event.getBlock();
-              allTransactions.push({
-                id: `claim-${event.transactionHash}-${event.index}`,
-                type: 'claim_submitted',
-                amount: parseFloat(ethers.formatEther(event.args[3])),
-                timestamp: block.timestamp * 1000,
-                txHash: event.transactionHash,
-                status: 'confirmed',
-                policyId: event.args[1].toString(),
-                description: 'Submitted Insurance Claim',
-              });
-            } catch {
-              // Skip events we can't parse
-            }
-          }
+        const [policyEvents, claimEvents, paidEvents] = await Promise.all([
+          queryEvents(insuranceContract, insuranceContract.filters.PolicyCreated(null, address)),
+          queryEvents(insuranceContract, insuranceContract.filters.ClaimSubmitted(null, null, address)),
+          queryEvents(insuranceContract, insuranceContract.filters.ClaimPaid(null, address)),
+        ]);
 
-          // Get ClaimPaid events
-          const paidFilter = insuranceContract.filters.ClaimPaid(null, address);
-          const paidEvents = await queryEventsInChunks(insuranceContract, paidFilter, fromBlock, currentBlock);
-          
-          for (const event of paidEvents) {
-            try {
-              const block = await event.getBlock();
-              allTransactions.push({
-                id: `paid-${event.transactionHash}-${event.index}`,
-                type: 'claim_paid',
-                amount: parseFloat(ethers.formatEther(event.args[2])),
-                timestamp: block.timestamp * 1000,
-                txHash: event.transactionHash,
-                status: 'confirmed',
-                description: 'Received Claim Payout',
-              });
-            } catch {
-              // Skip events we can't parse
-            }
-          }
-        } catch (err) {
-          console.log('Error fetching insurance events:', err);
+        const insBlockMap = await getTimestamps([...policyEvents, ...claimEvents, ...paidEvents]);
+
+        for (const event of policyEvents) {
+          allTransactions.push({
+            id: `policy-${event.transactionHash}-${event.index}`,
+            type: 'policy_purchase',
+            amount: parseFloat(ethers.formatEther(event.args[2])),
+            timestamp: insBlockMap.get(event.blockNumber) ?? Date.now(),
+            txHash: event.transactionHash,
+            status: 'confirmed',
+            protocol: event.args[4],
+            policyId: event.args[0].toString(),
+            description: `Purchased ${event.args[4]} Insurance Policy`,
+          });
+        }
+
+        for (const event of claimEvents) {
+          allTransactions.push({
+            id: `claim-${event.transactionHash}-${event.index}`,
+            type: 'claim_submitted',
+            amount: parseFloat(ethers.formatEther(event.args[3])),
+            timestamp: insBlockMap.get(event.blockNumber) ?? Date.now(),
+            txHash: event.transactionHash,
+            status: 'confirmed',
+            policyId: event.args[1].toString(),
+            description: 'Submitted Insurance Claim',
+          });
+        }
+
+        for (const event of paidEvents) {
+          allTransactions.push({
+            id: `paid-${event.transactionHash}-${event.index}`,
+            type: 'claim_paid',
+            amount: parseFloat(ethers.formatEther(event.args[2])),
+            timestamp: insBlockMap.get(event.blockNumber) ?? Date.now(),
+            txHash: event.transactionHash,
+            status: 'confirmed',
+            description: 'Received Claim Payout',
+          });
         }
       }
 
       // Sort by timestamp descending
       allTransactions.sort((a, b) => b.timestamp - a.timestamp);
-      setTransactions(allTransactions);
+
+      // Merge with any locally-cached txs that may be older than the block range
+      try {
+        const cached = localStorage.getItem(`tx_history_${address}`);
+        if (cached) {
+          const cachedTxs: Transaction[] = JSON.parse(cached);
+          const onChainIds = new Set(allTransactions.map(t => t.txHash));
+          const olderTxs = cachedTxs.filter(t => !onChainIds.has(t.txHash));
+          allTransactions.push(...olderTxs);
+          allTransactions.sort((a, b) => b.timestamp - a.timestamp);
+        }
+      } catch { /* ignore */ }
+
+      const final = allTransactions.slice(0, 50);
+      setTransactions(final);
+      try {
+        localStorage.setItem(`tx_history_${address}`, JSON.stringify(final));
+      } catch { /* ignore */ }
     } catch (err) {
       console.error('Error fetching transaction history:', err);
-      setError('Failed to fetch transaction history');
-      
-      // Fallback to localStorage cache
-      const cached = localStorage.getItem(`tx_history_${address}`);
-      if (cached) {
-        setTransactions(JSON.parse(cached));
-      }
+      setError('Failed to load recent transactions');
+      // Keep whatever cached data is already displayed
     } finally {
       setLoading(false);
     }
