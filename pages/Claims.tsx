@@ -86,7 +86,6 @@ const Claims = () => {
   
   const [claims, setClaims] = useState<LocalClaim[]>([]);
   const [policies, setPolicies] = useState<OnChainPolicy[]>([]);
-  const [activeTriggers, setActiveTriggers] = useState<Record<string, { active: boolean; type: number; severity: number }>>({});
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<string>('');
@@ -203,51 +202,11 @@ const Claims = () => {
         }
       }
 
-      // Load active triggers from localStorage
-      const protocols = ['Aave', 'Compound', 'Curve Finance', 'Uniswap', 'SushiSwap', 'Balancer V2'];
-      const triggers: Record<string, { active: boolean; type: number; severity: number }> = {};
-      
-      for (const protocol of protocols) {
-        const storedTrigger = localStorage.getItem(`trigger_${protocol}`);
-        if (storedTrigger) {
-          triggers[protocol] = JSON.parse(storedTrigger);
-        } else {
-          triggers[protocol] = { active: false, type: 0, severity: 0 };
-        }
-      }
-      setActiveTriggers(triggers);
-
     } catch (error) {
       // Error loading data - user will see empty state
     } finally {
       setLoading(false);
     }
-  };
-
-  // Simulate a parametric trigger activation
-  const simulateTrigger = (protocol: string, type: number, severity: number) => {
-    const trigger = { active: true, type, severity };
-    localStorage.setItem(`trigger_${protocol}`, JSON.stringify(trigger));
-    setActiveTriggers(prev => ({ ...prev, [protocol]: trigger }));
-    
-    addNotification({
-      type: 'warning',
-      title: '⚠️ Trigger Activated',
-      message: `${triggerTypes[type]?.label} detected for ${protocol}!`,
-      duration: 8000
-    });
-  };
-
-  const deactivateTrigger = (protocol: string) => {
-    localStorage.removeItem(`trigger_${protocol}`);
-    setActiveTriggers(prev => ({ ...prev, [protocol]: { active: false, type: 0, severity: 0 } }));
-    
-    addNotification({
-      type: 'info',
-      title: 'Trigger Deactivated',
-      message: `Trigger for ${protocol} has been deactivated.`,
-      duration: 5000
-    });
   };
 
   const handleSubmitClaim = async () => {
@@ -260,13 +219,6 @@ const Claims = () => {
     if (!policy) {
       notifyError('Policy not found');
       return;
-    }
-
-    // Check if trigger is active for this protocol
-    const trigger = activeTriggers[policy.protocol];
-    if (!trigger?.active) {
-      // Warn but allow submission — admin may activate trigger after review
-      notifyError(`Warning: No active trigger found for ${policy.protocol}. Your claim will be submitted for admin review.`);
     }
 
     setProcessing(true);
@@ -283,7 +235,7 @@ const Claims = () => {
         protocol: policy.protocol,
         amount: policy.coverage * 2500, // Convert to USD
         status: 'pending',
-        triggerType: trigger.type,
+        triggerType: triggerType,
         timestamp: Date.now(),
         onChain: false
       };
@@ -429,11 +381,6 @@ const Claims = () => {
     p.expiry > Math.floor(Date.now() / 1000)
   );
 
-  // Get policies with active triggers
-  const policiesWithTriggers = eligiblePolicies.filter(p => 
-    activeTriggers[p.protocol]?.active
-  );
-
   if (!isConnected) {
     return (
       <Card className="max-w-lg mx-auto mt-16 text-center">
@@ -468,28 +415,6 @@ const Claims = () => {
         </Button>
       </motion.div>
 
-      {/* Active Triggers Alert */}
-      {Object.entries(activeTriggers).some(([_, t]) => t.active) && (
-        <motion.div variants={itemVariants}>
-          <Card className="border-red-500/50 bg-red-500/10">
-            <div className="flex items-center gap-3">
-              <div className="text-red-400 animate-pulse">
-                <FiAlertTriangle size={24} />
-              </div>
-              <div>
-                <h3 className="font-bold text-red-400">Active Parametric Triggers Detected</h3>
-                <p className="text-sm text-gray-400">
-                  {Object.entries(activeTriggers)
-                    .filter(([_, t]) => t.active)
-                    .map(([protocol, t]) => `${protocol}: ${triggerTypes[t.type]?.label}`)
-                    .join(', ')}
-                </p>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-      )}
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Submit Claim Section */}
         <motion.div variants={itemVariants} className="lg:col-span-2">
@@ -505,35 +430,37 @@ const Claims = () => {
                   <FiShield size={48} />
                 </div>
                 <p className="text-gray-400">No eligible policies available for claims.</p>
-                <p className="text-sm text-gray-500 mt-2">Policies must be active and not expired.</p>
-              </div>
-            ) : policiesWithTriggers.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-yellow-400 text-4xl mx-auto mb-4 flex justify-center">
-                  <FiClock size={48} />
-                </div>
-                <p className="text-gray-400">No active triggers for your policies.</p>
-                <p className="text-sm text-gray-500 mt-2">
-                  Claims can only be submitted when a parametric trigger is active.
-                  Use the Admin Panel below to simulate triggers.
-                </p>
+                <p className="text-sm text-gray-500 mt-2">Policies must be active and not expired to submit a claim.</p>
               </div>
             ) : (
               <div className="space-y-6">
                 {/* Policy Selection */}
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Select Policy with Active Trigger</label>
+                  <label className="block text-sm text-gray-400 mb-2">Select Policy</label>
                   <select
                     value={selectedPolicy}
                     onChange={(e) => setSelectedPolicy(e.target.value)}
                     className="w-full bg-dark-bg border border-gray-700 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-glow-blue"
                   >
                     <option value="">Choose a policy...</option>
-                    {policiesWithTriggers.map(policy => (
+                    {eligiblePolicies.map(policy => (
                       <option key={policy.id} value={policy.id}>
-                        #{policy.id} - {policy.protocol} (${(policy.coverage * 2500).toLocaleString()} coverage) 
-                        - ⚠️ {triggerTypes[activeTriggers[policy.protocol]?.type]?.label}
+                        #{policy.id} - {policy.protocol} (${(policy.coverage * 2500).toLocaleString()} coverage)
                       </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Claim Reason */}
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Claim Reason</label>
+                  <select
+                    value={triggerType}
+                    onChange={(e) => setTriggerType(parseInt(e.target.value))}
+                    className="w-full bg-dark-bg border border-gray-700 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-glow-blue"
+                  >
+                    {triggerTypes.map(t => (
+                      <option key={t.id} value={t.id}>{t.label} — {t.description}</option>
                     ))}
                   </select>
                 </div>
@@ -558,7 +485,7 @@ const Claims = () => {
                 </Button>
 
                 <p className="text-xs text-gray-500 text-center">
-                  Claims are verified against on-chain parametric triggers. Approved claims are paid instantly.
+                  Claims are reviewed and paid out from the liquidity pool upon approval.
                 </p>
               </div>
             )}
@@ -596,19 +523,17 @@ const Claims = () => {
 
             <hr className="border-gray-700 my-4" />
 
-            <h4 className="font-semibold mb-3">Active Triggers</h4>
+            <h4 className="font-semibold mb-3">Eligible Policies</h4>
             <div className="space-y-2">
-              {Object.entries(activeTriggers).filter(([_, t]) => t.active).length === 0 ? (
-                <p className="text-sm text-gray-500">No active triggers</p>
+              {eligiblePolicies.length === 0 ? (
+                <p className="text-sm text-gray-500">No active policies</p>
               ) : (
-                Object.entries(activeTriggers)
-                  .filter(([_, t]) => t.active)
-                  .map(([protocol, t]) => (
-                    <div key={protocol} className="flex justify-between items-center text-sm">
-                      <span className="text-red-400">{protocol}</span>
-                      <span className="text-gray-400">{triggerTypes[t.type]?.label}</span>
-                    </div>
-                  ))
+                eligiblePolicies.map(p => (
+                  <div key={p.id} className="flex justify-between items-center text-sm">
+                    <span className="text-gray-300">{p.protocol}</span>
+                    <span className="text-green-400">${(p.coverage * 2500).toLocaleString()}</span>
+                  </div>
+                ))
               )}
             </div>
           </Card>
@@ -714,90 +639,7 @@ const Claims = () => {
         </Card>
       </motion.div>
 
-      {/* Admin Panel - Trigger Simulator */}
-      <motion.div variants={itemVariants}>
-        <Card className="border-yellow-500/30 bg-yellow-500/5">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-yellow-400"><FiAlertTriangle size={20} /></span>
-            <h2 className="text-xl font-orbitron text-yellow-400">Admin Panel - Trigger Simulator</h2>
-          </div>
-          <p className="text-gray-400 text-sm mb-6">
-            Simulate parametric trigger events. In production, these would be triggered by oracles monitoring on-chain data.
-          </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            {['Aave', 'Compound', 'Curve Finance', 'Uniswap', 'SushiSwap', 'Balancer V2'].map(protocol => (
-              <div key={protocol} className="p-4 bg-dark-bg/50 rounded-lg border border-gray-700">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="font-semibold">{protocol}</span>
-                  {activeTriggers[protocol]?.active ? (
-                    <span className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded-full animate-pulse">
-                      ACTIVE
-                    </span>
-                  ) : (
-                    <span className="text-xs bg-gray-600/20 text-gray-400 px-2 py-1 rounded-full">
-                      Inactive
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  {!activeTriggers[protocol]?.active ? (
-                    <select
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          simulateTrigger(protocol, parseInt(e.target.value), 75);
-                        }
-                      }}
-                      className="flex-1 bg-dark-bg border border-gray-600 rounded px-2 py-1 text-xs"
-                      defaultValue=""
-                    >
-                      <option value="">Activate trigger...</option>
-                      {triggerTypes.map(t => (
-                        <option key={t.id} value={t.id}>{t.label}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <button
-                      onClick={() => deactivateTrigger(protocol)}
-                      className="flex-1 px-3 py-1 bg-gray-600/20 text-gray-400 rounded text-xs hover:bg-gray-600/30"
-                    >
-                      Deactivate
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
 
-          <div className="flex gap-4">
-            <Button 
-              variant="secondary" 
-              className="text-sm"
-              onClick={clearAllClaims}
-            >
-              Clear All Claims
-            </Button>
-            <Button 
-              variant="secondary" 
-              className="text-sm"
-              onClick={() => {
-                ['Aave', 'Compound', 'Curve Finance', 'Uniswap', 'SushiSwap', 'Balancer V2'].forEach(p => {
-                  localStorage.removeItem(`trigger_${p}`);
-                });
-                setActiveTriggers({});
-                addNotification({
-                  type: 'info',
-                  title: 'All Triggers Cleared',
-                  message: 'All parametric triggers have been deactivated.',
-                  duration: 4000
-                });
-              }}
-            >
-              Clear All Triggers
-            </Button>
-          </div>
-        </Card>
-      </motion.div>
     </motion.div>
   );
 };
