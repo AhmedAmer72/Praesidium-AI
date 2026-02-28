@@ -146,11 +146,18 @@ const Marketplace = () => {
 
   const filteredProtocols = useMemo(() => {
     // Update protocols with real oracle data
-    const updatedProtocols = mockProtocols.map(protocol => ({
-      ...protocol,
-      riskScore: riskScores[protocol.name] || protocol.riskScore,
-      premiumRate: premiumRates[protocol.name] || protocol.premiumRate
-    }));
+    const updatedProtocols = mockProtocols.map(protocol => {
+      const liveScore = riskScores[protocol.name] ?? protocol.riskScore;
+      const liveLevel: RiskLevel =
+        liveScore >= 80 ? RiskLevel.Low :
+        liveScore >= 50 ? RiskLevel.Medium : RiskLevel.High;
+      return {
+        ...protocol,
+        riskScore: liveScore,
+        premiumRate: premiumRates[protocol.name] ?? protocol.premiumRate,
+        riskLevel: liveLevel,
+      };
+    });
     
     return updatedProtocols.filter(p => {
         const nameMatch = p.name.toLowerCase().includes(searchTerm.toLowerCase());

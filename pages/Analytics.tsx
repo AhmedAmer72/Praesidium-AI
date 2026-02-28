@@ -13,6 +13,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
 import CoverageCapacity from '../components/CoverageCapacity';
+import GlobalClaimsFeed from '../components/GlobalClaimsFeed';
 import { useProtocolMetrics } from '../hooks/useProtocolMetrics';
 import { usePoolAPY } from '../hooks/usePoolAPY';
 import { usePriceOracle } from '../hooks/usePriceOracle';
@@ -277,6 +278,11 @@ const Analytics: React.FC = () => {
             </ResponsiveContainer>
           </div>
         </Card>
+      </div>
+
+      {/* Global Claims Feed Section */}
+      <div className="mb-6">
+        <GlobalClaimsFeed maxItems={10} />
       </div>
 
       {/* Coverage Capacity Section */}

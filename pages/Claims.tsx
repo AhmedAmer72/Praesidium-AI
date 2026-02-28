@@ -265,8 +265,8 @@ const Claims = () => {
     // Check if trigger is active for this protocol
     const trigger = activeTriggers[policy.protocol];
     if (!trigger?.active) {
-      notifyError(`No active trigger for ${policy.protocol}. Admin must activate a trigger first.`);
-      return;
+      // Warn but allow submission — admin may activate trigger after review
+      notifyError(`Warning: No active trigger found for ${policy.protocol}. Your claim will be submitted for admin review.`);
     }
 
     setProcessing(true);

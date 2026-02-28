@@ -13,6 +13,7 @@ import CoverageCapacity from '../components/CoverageCapacity';
 import { useContract } from '../hooks/useContract';
 import { usePriceOracle } from '../hooks/usePriceOracle';
 import { usePoolAPY } from '../hooks/usePoolAPY';
+import { useCoverageCapacity } from '../hooks/useCoverageCapacity';
 import { CONTRACT_ADDRESSES } from '../constants';
 import { useNotification } from '../context/NotificationContext';
 
@@ -28,6 +29,7 @@ const LiquidityPool = () => {
   const { getLiquidityContract, connectWallet } = useContract();
   const { ethUsdPrice, ethToUsd } = usePriceOracle();
   const { currentAPY, sevenDayAPY, thirtyDayAPY, loading: apyLoading } = usePoolAPY();
+  const { capacity } = useCoverageCapacity();
   const { notifyDeposit, notifyWithdraw, notifyError } = useNotification();
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
   const [amount, setAmount] = useState('');
@@ -345,6 +347,28 @@ const LiquidityPool = () => {
                 <span className="text-gray-400">Total Liquidity</span>
                 <span>$<AnimatedCounter to={poolBalance} /></span>
              </div>
+          </div>
+          {/* Pool Utilization Bar */}
+          <div className="mb-4">
+            <div className="flex justify-between text-sm mb-1">
+              <span className="text-gray-400">Pool Utilization</span>
+              <span className={`font-semibold ${
+                capacity.utilizationRatio > 80 ? 'text-red-400' :
+                capacity.utilizationRatio > 60 ? 'text-yellow-400' : 'text-green-400'
+              }`}>{capacity.utilizationRatio.toFixed(1)}%</span>
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-2.5">
+              <div
+                className={`h-2.5 rounded-full transition-all duration-700 ${
+                  capacity.utilizationRatio > 80 ? 'bg-red-400' :
+                  capacity.utilizationRatio > 60 ? 'bg-yellow-400' : 'bg-green-400'
+                }`}
+                style={{ width: `${Math.min(capacity.utilizationRatio, 100)}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {capacity.availableCapacity.toFixed(4)} POL capacity remaining
+            </p>
           </div>
           <h4 className="font-semibold mb-4">Asset Distribution</h4>
           <div className="h-64">

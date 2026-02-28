@@ -258,6 +258,7 @@ const Dashboard = () => {
                         <th className="text-left py-4 px-4 text-gray-400 font-semibold">Premium Paid</th>
                         <th className="text-left py-4 px-4 text-gray-400 font-semibold">Status</th>
                         <th className="text-left py-4 px-4 text-gray-400 font-semibold">Expires</th>
+                        <th className="text-left py-4 px-4 text-gray-400 font-semibold">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -287,6 +288,15 @@ const Dashboard = () => {
                           </td>
                           <td className="py-4 px-4 text-gray-400">
                             {new Date(policy.expiry * 1000).toLocaleDateString()}
+                          </td>
+                          <td className="py-4 px-4">
+                            {(!policy.active || (policy.expiry * 1000 - Date.now()) < 30 * 24 * 60 * 60 * 1000) && (
+                              <Link to={`/buy/${encodeURIComponent(policy.protocol)}`}>
+                                <button className="px-3 py-1 text-xs font-semibold rounded-lg bg-glow-blue/20 text-glow-blue border border-glow-blue/40 hover:bg-glow-blue/30 transition-colors">
+                                  Renew
+                                </button>
+                              </Link>
+                            )}
                           </td>
                         </tr>
                       ))}
