@@ -114,7 +114,8 @@ const INSURANCE_V2_ABI = [
   "function getHolderClaims(address holder) external view returns (uint256[])",
   "function policies(uint256 policyId) external view returns (uint256 id, address holder, uint256 premium, uint256 coverage, uint256 expiry, bool active, string memory protocol, bool claimed)",
   "function totalClaimsPaid() external view returns (uint256)",
-  "function getContractBalance() external view returns (uint256)"
+  "function getContractBalance() external view returns (uint256)",
+  "function owner() external view returns (address)"
 ];
 
 const LIQUIDITY_ABI = [

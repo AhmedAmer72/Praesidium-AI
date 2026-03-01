@@ -91,6 +91,15 @@ const Claims = () => {
   const [selectedPolicy, setSelectedPolicy] = useState<string>('');
   const [triggerType, setTriggerType] = useState<number>(0);
   const [claimEvidence, setClaimEvidence] = useState<string>('');
+  // Trigger status per protocol
+  const [triggerStatuses, setTriggerStatuses] = useState<Record<string, { isActive: boolean; triggerType: number; severity: number }>>({});
+  // Contract owner detection
+  const [isOwner, setIsOwner] = useState(false);
+  // Admin panel state
+  const [adminProtocol, setAdminProtocol] = useState('');
+  const [adminTriggerType, setAdminTriggerType] = useState(1);
+  const [adminSeverity, setAdminSeverity] = useState(80);
+  const [adminProcessing, setAdminProcessing] = useState(false);
 
   useEffect(() => {
     if (isConnected && address) {
@@ -151,6 +160,23 @@ const Claims = () => {
       }
 
       setPolicies(userPolicies);
+
+      // Check trigger status for each unique protocol
+      const uniqueProtocols = [...new Set(userPolicies.map(p => p.protocol))];
+      const statuses: Record<string, { isActive: boolean; triggerType: number; severity: number }> = {};
+      for (const proto of uniqueProtocols) {
+        try {
+          const [isActive, tType, severity] = await contract.isTriggerActive(proto);
+          statuses[proto] = { isActive: Boolean(isActive), triggerType: Number(tType), severity: Number(severity) };
+        } catch { statuses[proto] = { isActive: false, triggerType: 0, severity: 0 }; }
+      }
+      setTriggerStatuses(statuses);
+
+      // Check if connected wallet is contract owner
+      try {
+        const owner = await contract.owner();
+        setIsOwner(owner.toLowerCase() === (address || '').toLowerCase());
+      } catch { setIsOwner(false); }
 
       // Try to load claims from on-chain first
       try {
@@ -218,6 +244,17 @@ const Claims = () => {
     const policy = policies.find(p => p.id === selectedPolicy);
     if (!policy) {
       notifyError('Policy not found');
+      return;
+    }
+
+    // Pre-validate: check trigger is active and type matches
+    const ts = triggerStatuses[policy.protocol];
+    if (!ts || !ts.isActive) {
+      notifyError(`No active trigger for ${policy.protocol}. An oracle trigger event must be activated by the protocol administrator before claims can be submitted.`);
+      return;
+    }
+    if (ts.triggerType !== triggerType) {
+      notifyError(`Trigger type mismatch. The active trigger for ${policy.protocol} is "${triggerTypes[ts.triggerType]?.label}". Please select that trigger type.`);
       return;
     }
 
@@ -369,17 +406,62 @@ const Claims = () => {
     });
   };
 
+  // Admin: activate trigger for a protocol (onlyOwner)
+  const handleActivateTrigger = async () => {
+    if (!adminProtocol) { notifyError('Select a protocol'); return; }
+    setAdminProcessing(true);
+    try {
+      await connectWallet();
+      const contract = getInsuranceV2Contract();
+      if (!contract) throw new Error('Contract unavailable');
+      const tx = await contract.activateTrigger(adminProtocol, adminTriggerType, adminSeverity, { gasLimit: 200000 });
+      addNotification({ type: 'info', title: 'Activating Trigger', message: `Tx sent for ${adminProtocol}...`, txHash: tx.hash, duration: 10000 });
+      await tx.wait(1);
+      addNotification({ type: 'success', title: 'Trigger Activated', message: `${adminProtocol} trigger is now active (severity ${adminSeverity})`, duration: 6000 });
+      await loadData(); // refresh trigger statuses
+    } catch (e: any) {
+      notifyError('activateTrigger failed: ' + (e.reason || e.message));
+    } finally { setAdminProcessing(false); }
+  };
+
+  // Admin: deactivate trigger
+  const handleDeactivateTrigger = async (proto: string) => {
+    setAdminProcessing(true);
+    try {
+      await connectWallet();
+      const contract = getInsuranceV2Contract();
+      if (!contract) throw new Error('Contract unavailable');
+      const tx = await contract.deactivateTrigger(proto, { gasLimit: 100000 });
+      await tx.wait(1);
+      addNotification({ type: 'info', title: 'Trigger Deactivated', message: `${proto} trigger removed`, duration: 5000 });
+      await loadData();
+    } catch (e: any) {
+      notifyError('deactivateTrigger failed: ' + (e.reason || e.message));
+    } finally { setAdminProcessing(false); }
+  };
+
   const clearAllClaims = () => {
     setClaims([]);
     localStorage.removeItem(`claims_${address}`);
   };
 
   // Get eligible policies (active, not claimed, not expired)
+  // Also annotate with trigger status
   const eligiblePolicies = policies.filter(p => 
     p.active && 
     !p.claimed && 
     p.expiry > Math.floor(Date.now() / 1000)
   );
+
+  // Policy selected → auto-set triggerType to match active trigger
+  const handleSelectPolicy = (policyId: string) => {
+    setSelectedPolicy(policyId);
+    const policy = policies.find(p => p.id === policyId);
+    if (policy) {
+      const ts = triggerStatuses[policy.protocol];
+      if (ts?.isActive) setTriggerType(ts.triggerType);
+    }
+  };
 
   if (!isConnected) {
     return (
@@ -439,30 +521,70 @@ const Claims = () => {
                   <label className="block text-sm text-gray-400 mb-2">Select Policy</label>
                   <select
                     value={selectedPolicy}
-                    onChange={(e) => setSelectedPolicy(e.target.value)}
+                    onChange={(e) => handleSelectPolicy(e.target.value)}
                     className="w-full bg-dark-bg border border-gray-700 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-glow-blue"
                   >
                     <option value="">Choose a policy...</option>
-                    {eligiblePolicies.map(policy => (
-                      <option key={policy.id} value={policy.id}>
-                        #{policy.id} - {policy.protocol} (${(policy.coverage * 2500).toLocaleString()} coverage)
-                      </option>
-                    ))}
+                    {eligiblePolicies.map(policy => {
+                      const ts = triggerStatuses[policy.protocol];
+                      const hasActiveTrigger = ts?.isActive;
+                      return (
+                        <option key={policy.id} value={policy.id}>
+                          {hasActiveTrigger ? '✓' : '⚠'} #{policy.id} - {policy.protocol} (${(policy.coverage * 2500).toLocaleString()}){!hasActiveTrigger ? ' — no trigger' : ''}
+                        </option>
+                      );
+                    })}
                   </select>
+                  {/* Show trigger status for selected policy */}
+                  {selectedPolicy && (() => {
+                    const policy = policies.find(p => p.id === selectedPolicy);
+                    const ts = policy ? triggerStatuses[policy.protocol] : null;
+                    if (!ts) return null;
+                    return ts.isActive ? (
+                      <p className="text-xs text-green-400 mt-1">✓ Active trigger for {policy!.protocol} — severity {ts.severity} — type: {triggerTypes[ts.triggerType]?.label}</p>
+                    ) : (
+                      <p className="text-xs text-red-400 mt-1">⚠ No active trigger for {policy!.protocol}. The contract owner must activate a trigger event before claims can be submitted.</p>
+                    );
+                  })()}
                 </div>
 
                 {/* Claim Reason */}
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">Claim Reason</label>
-                  <select
-                    value={triggerType}
-                    onChange={(e) => setTriggerType(parseInt(e.target.value))}
-                    className="w-full bg-dark-bg border border-gray-700 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-glow-blue"
-                  >
-                    {triggerTypes.map(t => (
-                      <option key={t.id} value={t.id}>{t.label} — {t.description}</option>
-                    ))}
-                  </select>
+                  {selectedPolicy && (() => {
+                    const policy = policies.find(p => p.id === selectedPolicy);
+                    const ts = policy ? triggerStatuses[policy.protocol] : null;
+                    if (ts?.isActive) {
+                      // lock to the active trigger type
+                      return (
+                        <div className="w-full bg-dark-bg border border-green-700/50 rounded-lg py-3 px-4 text-green-300 text-sm">
+                          {triggerTypes[ts.triggerType]?.label} — {triggerTypes[ts.triggerType]?.description}
+                          <span className="ml-2 text-xs text-gray-500">(locked to active trigger)</span>
+                        </div>
+                      );
+                    }
+                    return (
+                      <select
+                        value={triggerType}
+                        onChange={(e) => setTriggerType(parseInt(e.target.value))}
+                        className="w-full bg-dark-bg border border-gray-700 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-glow-blue"
+                      >
+                        {triggerTypes.map(t => (
+                          <option key={t.id} value={t.id}>{t.label} — {t.description}</option>
+                        ))}
+                      </select>
+                    );
+                  })() ?? (
+                    <select
+                      value={triggerType}
+                      onChange={(e) => setTriggerType(parseInt(e.target.value))}
+                      className="w-full bg-dark-bg border border-gray-700 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-glow-blue"
+                    >
+                      {triggerTypes.map(t => (
+                        <option key={t.id} value={t.id}>{t.label} — {t.description}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 {/* Evidence Input */}
@@ -639,6 +761,106 @@ const Claims = () => {
         </Card>
       </motion.div>
 
+
+      {/* Admin Trigger Panel — visible only to contract owner */}
+      {isOwner && (
+        <motion.div variants={itemVariants}>
+          <Card className="border border-yellow-500/30 bg-yellow-500/5">
+            <h2 className="text-2xl font-orbitron mb-2 flex items-center gap-2 text-yellow-400">
+              <FiZap size={22} /> Admin — Parametric Triggers
+            </h2>
+            <p className="text-xs text-gray-500 mb-6">
+              Only the contract owner can activate / deactivate triggers. A trigger MUST be active for a protocol before policyholders can submit claims.
+            </p>
+
+            {/* Current trigger statuses */}
+            {Object.keys(triggerStatuses).length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-sm text-gray-400 mb-3 font-semibold uppercase tracking-wider">Current Trigger Status</h4>
+                <div className="space-y-2">
+                  {Object.entries(triggerStatuses).map(([proto, ts]) => (
+                    <div key={proto} className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
+                      <div className="flex items-center gap-3">
+                        <span className={`w-2 h-2 rounded-full ${ts.isActive ? 'bg-green-400' : 'bg-gray-600'}`}></span>
+                        <span className="font-semibold">{proto}</span>
+                        {ts.isActive && (
+                          <span className="text-xs text-green-400">{triggerTypes[ts.triggerType]?.label} · severity {ts.severity}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${ts.isActive ? 'bg-green-400/20 text-green-400' : 'bg-gray-700 text-gray-500'}`}>
+                          {ts.isActive ? 'ACTIVE' : 'INACTIVE'}
+                        </span>
+                        {ts.isActive && (
+                          <button
+                            onClick={() => handleDeactivateTrigger(proto)}
+                            disabled={adminProcessing}
+                            className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 disabled:opacity-50"
+                          >
+                            Deactivate
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Activate new trigger */}
+            <h4 className="text-sm text-gray-400 mb-3 font-semibold uppercase tracking-wider">Activate Trigger</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Protocol</label>
+                <select
+                  value={adminProtocol}
+                  onChange={e => setAdminProtocol(e.target.value)}
+                  className="w-full bg-dark-bg border border-gray-700 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
+                >
+                  <option value="">Select protocol...</option>
+                  {[...new Set(policies.map(p => p.protocol))].map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                  {/* Allow custom input */}
+                  {adminProtocol && ![...new Set(policies.map(p => p.protocol))].includes(adminProtocol) && (
+                    <option value={adminProtocol}>{adminProtocol} (custom)</option>
+                  )}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Trigger Type</label>
+                <select
+                  value={adminTriggerType}
+                  onChange={e => setAdminTriggerType(parseInt(e.target.value))}
+                  className="w-full bg-dark-bg border border-gray-700 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
+                >
+                  {triggerTypes.map(t => (
+                    <option key={t.id} value={t.id}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Severity (1–100)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={adminSeverity}
+                  onChange={e => setAdminSeverity(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
+                  className="w-full bg-dark-bg border border-gray-700 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
+                />
+              </div>
+            </div>
+            <button
+              onClick={handleActivateTrigger}
+              disabled={adminProcessing || !adminProtocol}
+              className="px-6 py-2 rounded-lg bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 hover:bg-yellow-500/30 font-semibold text-sm disabled:opacity-50 transition-colors"
+            >
+              {adminProcessing ? 'Processing...' : 'Activate Trigger'}
+            </button>
+          </Card>
+        </motion.div>
+      )}
 
     </motion.div>
   );
