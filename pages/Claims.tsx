@@ -93,6 +93,9 @@ const Claims = () => {
   const [claimEvidence, setClaimEvidence] = useState<string>('');
   // Trigger status per protocol
   const [triggerStatuses, setTriggerStatuses] = useState<Record<string, { isActive: boolean; triggerType: number; severity: number }>>({});
+  // Mock (demo) triggers — local state, no on-chain tx needed
+  const [mockTriggers, setMockTriggers] = useState<Record<string, { isActive: boolean; triggerType: number; severity: number }>>({});
+  const [showMockPanel, setShowMockPanel] = useState(false);
   // Contract owner detection
   const [isOwner, setIsOwner] = useState(false);
   // Admin panel state
@@ -100,6 +103,10 @@ const Claims = () => {
   const [adminTriggerType, setAdminTriggerType] = useState(1);
   const [adminSeverity, setAdminSeverity] = useState(80);
   const [adminProcessing, setAdminProcessing] = useState(false);
+  // Mock admin state (reuse same fields)
+  const [mockProtocol, setMockProtocol] = useState('');
+  const [mockTriggerType, setMockTriggerType] = useState(1);
+  const [mockSeverity, setMockSeverity] = useState(80);
 
   useEffect(() => {
     if (isConnected && address) {
@@ -235,6 +242,32 @@ const Claims = () => {
     }
   };
 
+  // Merged effective triggers: on-chain takes priority, mock fills the rest
+  const effectiveTriggers = { ...triggerStatuses };
+  Object.entries(mockTriggers).forEach(([proto, mt]) => {
+    if (!effectiveTriggers[proto] || !effectiveTriggers[proto].isActive) {
+      effectiveTriggers[proto] = mt;
+    }
+  });
+
+  // Mock trigger helpers
+  const handleMockActivate = () => {
+    if (!mockProtocol) { notifyError('Select a protocol'); return; }
+    setMockTriggers(prev => ({
+      ...prev,
+      [mockProtocol]: { isActive: true, triggerType: mockTriggerType, severity: mockSeverity }
+    }));
+    addNotification({ type: 'info', title: 'Demo Trigger Activated', message: `Mock trigger set for ${mockProtocol} (${triggerTypes[mockTriggerType]?.label})`, duration: 4000 });
+  };
+
+  const handleMockDeactivate = (proto: string) => {
+    setMockTriggers(prev => {
+      const next = { ...prev };
+      delete next[proto];
+      return next;
+    });
+  };
+
   const handleSubmitClaim = async () => {
     if (!selectedPolicy) {
       notifyError('Please select a policy to claim');
@@ -247,10 +280,11 @@ const Claims = () => {
       return;
     }
 
-    // Pre-validate: check trigger is active and type matches
-    const ts = triggerStatuses[policy.protocol];
+    // Pre-validate: check trigger is active and type matches (on-chain OR mock)
+    const ts = effectiveTriggers[policy.protocol];
+    const isMockTrigger = !triggerStatuses[policy.protocol]?.isActive && mockTriggers[policy.protocol]?.isActive;
     if (!ts || !ts.isActive) {
-      notifyError(`No active trigger for ${policy.protocol}. An oracle trigger event must be activated by the protocol administrator before claims can be submitted.`);
+      notifyError(`No active trigger for ${policy.protocol}. Use the Demo Panel below to simulate a trigger, or the contract owner can activate one on-chain.`);
       return;
     }
     if (ts.triggerType !== triggerType) {
@@ -278,7 +312,8 @@ const Claims = () => {
       };
 
       // Submit claim on-chain using V2's submitClaim function
-      if (contract) {
+      // Skip on-chain if this is a mock/demo trigger
+      if (contract && !isMockTrigger) {
         try {
           // Simple gas options - let MetaMask handle gas pricing
           const gasOptions: any = { gasLimit: 350000 };
@@ -309,6 +344,11 @@ const Claims = () => {
           // If on-chain fails, still track locally
           notifyError('On-chain submission failed: ' + (txError.reason || txError.message));
         }
+      } else if (isMockTrigger) {
+        // Demo mode — simulate a short delay then mark as locally recorded
+        await new Promise(resolve => setTimeout(resolve, 800));
+        newClaim.id = `demo_${Date.now()}`;
+        addNotification({ type: 'info', title: 'Demo Claim Recorded', message: `Mock claim for ${policy.protocol} saved locally.`, duration: 5000 });
       }
 
       // Add to claims list
@@ -447,9 +487,9 @@ const Claims = () => {
 
   // Get eligible policies (active, not claimed, not expired)
   // Also annotate with trigger status
-  const eligiblePolicies = policies.filter(p => 
-    p.active && 
-    !p.claimed && 
+  const eligiblePolicies = policies.filter(p =>
+    p.active &&
+    !p.claimed &&
     p.expiry > Math.floor(Date.now() / 1000)
   );
 
@@ -458,7 +498,7 @@ const Claims = () => {
     setSelectedPolicy(policyId);
     const policy = policies.find(p => p.id === policyId);
     if (policy) {
-      const ts = triggerStatuses[policy.protocol];
+      const ts = effectiveTriggers[policy.protocol];
       if (ts?.isActive) setTriggerType(ts.triggerType);
     }
   };
@@ -526,7 +566,7 @@ const Claims = () => {
                   >
                     <option value="">Choose a policy...</option>
                     {eligiblePolicies.map(policy => {
-                      const ts = triggerStatuses[policy.protocol];
+                      const ts = effectiveTriggers[policy.protocol];
                       const hasActiveTrigger = ts?.isActive;
                       return (
                         <option key={policy.id} value={policy.id}>
@@ -538,12 +578,16 @@ const Claims = () => {
                   {/* Show trigger status for selected policy */}
                   {selectedPolicy && (() => {
                     const policy = policies.find(p => p.id === selectedPolicy);
-                    const ts = policy ? triggerStatuses[policy.protocol] : null;
+                    const ts = policy ? effectiveTriggers[policy.protocol] : null;
+                    const isMock = policy && !triggerStatuses[policy.protocol]?.isActive && mockTriggers[policy.protocol]?.isActive;
                     if (!ts) return null;
                     return ts.isActive ? (
-                      <p className="text-xs text-green-400 mt-1">✓ Active trigger for {policy!.protocol} — severity {ts.severity} — type: {triggerTypes[ts.triggerType]?.label}</p>
+                      <p className={`text-xs mt-1 ${isMock ? 'text-orange-400' : 'text-green-400'}`}>
+                        {isMock ? '🎭 Demo trigger' : '✓ Active trigger'} for {policy!.protocol} — severity {ts.severity} — type: {triggerTypes[ts.triggerType]?.label}
+                        {isMock && <span className="ml-1 text-gray-500">(mock, not on-chain)</span>}
+                      </p>
                     ) : (
-                      <p className="text-xs text-red-400 mt-1">⚠ No active trigger for {policy!.protocol}. The contract owner must activate a trigger event before claims can be submitted.</p>
+                      <p className="text-xs text-red-400 mt-1">⚠ No active trigger for {policy!.protocol}. Use the <strong>Demo Panel</strong> below to simulate one.</p>
                     );
                   })()}
                 </div>
@@ -553,7 +597,7 @@ const Claims = () => {
                   <label className="block text-sm text-gray-400 mb-2">Claim Reason</label>
                   {(selectedPolicy && (() => {
                     const policy = policies.find(p => p.id === selectedPolicy);
-                    const ts = policy ? triggerStatuses[policy.protocol] : null;
+                    const ts = policy ? effectiveTriggers[policy.protocol] : null;
                     if (ts?.isActive) {
                       // lock to the active trigger type
                       return (
@@ -761,6 +805,107 @@ const Claims = () => {
         </Card>
       </motion.div>
 
+
+      {/* Demo / Mock Admin Panel — visible to all users for testing */}
+      <motion.div variants={itemVariants}>
+        <Card className="border border-orange-500/30 bg-orange-500/5">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-xl font-orbitron flex items-center gap-2 text-orange-400">
+              <FiZap size={20} /> Demo Mode — Simulate Triggers
+            </h2>
+            <button
+              onClick={() => setShowMockPanel(p => !p)}
+              className="text-xs px-3 py-1 rounded-lg bg-orange-500/20 text-orange-400 border border-orange-500/40 hover:bg-orange-500/30 transition-colors"
+            >
+              {showMockPanel ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mb-0">
+            Simulate parametric trigger events locally for demo purposes — no wallet or on-chain transaction required.
+          </p>
+
+          {showMockPanel && (
+            <div className="mt-4 space-y-4">
+              {/* Active mock triggers */}
+              {Object.keys(mockTriggers).length > 0 && (
+                <div>
+                  <h4 className="text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wider">Active Demo Triggers</h4>
+                  <div className="space-y-2">
+                    {Object.entries(mockTriggers).map(([proto, mt]) => (
+                      <div key={proto} className="flex items-center justify-between p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                        <div className="flex items-center gap-3">
+                          <span className="w-2 h-2 rounded-full bg-orange-400"></span>
+                          <span className="font-semibold text-sm">{proto}</span>
+                          <span className="text-xs text-orange-300">{triggerTypes[mt.triggerType]?.label} · severity {mt.severity}</span>
+                          <span className="text-xs bg-orange-400/20 text-orange-400 px-2 py-0.5 rounded-full">DEMO</span>
+                        </div>
+                        <button
+                          onClick={() => handleMockDeactivate(proto)}
+                          className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Activate mock trigger form */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Protocol</label>
+                  <select
+                    value={mockProtocol}
+                    onChange={e => setMockProtocol(e.target.value)}
+                    className="w-full bg-dark-bg border border-gray-700 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                  >
+                    <option value="">Select protocol...</option>
+                    {policies.length > 0
+                      ? [...new Set(policies.map(p => p.protocol))].map(p => (
+                          <option key={p} value={p}>{p}</option>
+                        ))
+                      : ['Aave', 'Compound', 'Uniswap', 'Curve', 'MakerDAO'].map(p => (
+                          <option key={p} value={p}>{p}</option>
+                        ))
+                    }
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Trigger Type</label>
+                  <select
+                    value={mockTriggerType}
+                    onChange={e => setMockTriggerType(parseInt(e.target.value))}
+                    className="w-full bg-dark-bg border border-gray-700 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                  >
+                    {triggerTypes.map(t => (
+                      <option key={t.id} value={t.id}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Severity (1–100)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={mockSeverity}
+                    onChange={e => setMockSeverity(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
+                    className="w-full bg-dark-bg border border-gray-700 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={handleMockActivate}
+                disabled={!mockProtocol}
+                className="px-6 py-2 rounded-lg bg-orange-500/20 text-orange-400 border border-orange-500/40 hover:bg-orange-500/30 font-semibold text-sm disabled:opacity-50 transition-colors"
+              >
+                Activate Demo Trigger
+              </button>
+            </div>
+          )}
+        </Card>
+      </motion.div>
 
       {/* Admin Trigger Panel — visible only to contract owner */}
       {isOwner && (
