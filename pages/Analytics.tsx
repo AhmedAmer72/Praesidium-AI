@@ -65,7 +65,7 @@ const Analytics: React.FC = () => {
         <div>
           <p className="text-gray-400 text-sm mb-1">{title}</p>
           <p className={`text-2xl font-bold ${color}`}>
-            {prefix}<AnimatedCounter value={value} decimals={2} />{suffix}
+            {prefix}<AnimatedCounter to={value} precision={2} />{suffix}
           </p>
           {change !== undefined && (
             <p className={`text-sm mt-1 ${change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
