@@ -551,7 +551,7 @@ const Claims = () => {
                 {/* Claim Reason */}
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">Claim Reason</label>
-                  {selectedPolicy && (() => {
+                  {(selectedPolicy && (() => {
                     const policy = policies.find(p => p.id === selectedPolicy);
                     const ts = policy ? triggerStatuses[policy.protocol] : null;
                     if (ts?.isActive) {
@@ -574,7 +574,7 @@ const Claims = () => {
                         ))}
                       </select>
                     );
-                  })() ?? (
+                  })()) ?? (
                     <select
                       value={triggerType}
                       onChange={(e) => setTriggerType(parseInt(e.target.value))}
