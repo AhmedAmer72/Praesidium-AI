@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { FiExternalLink, FiClock, FiShield, FiAlertTriangle } from 'react-icons/fi';
+import { FiExternalLink, FiClock, FiShield, FiAlertTriangle, FiDownload, FiFileText } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { ethers } from 'ethers';
 
@@ -17,6 +17,120 @@ import { useContract } from '../hooks/useContract';
 import { usePriceOracle } from '../hooks/usePriceOracle';
 import { useNotification } from '../context/NotificationContext';
 import { Policy, Claim, OnChainPolicy } from '../types';
+
+// ── Countdown badge ──────────────────────────────────────────────────────────
+const CountdownBadge: React.FC<{ expiry: number; active: boolean }> = ({ expiry, active }) => {
+  const now = Date.now();
+  const msLeft = expiry * 1000 - now;
+  const daysLeft = Math.ceil(msLeft / (24 * 60 * 60 * 1000));
+
+  if (!active || daysLeft <= 0) {
+    return <span className="text-gray-500 text-xs">—</span>;
+  }
+
+  let color = 'bg-green-400/20 text-green-400 border-green-400/40';
+  let label = `${daysLeft}d left`;
+
+  if (daysLeft <= 7) {
+    color = 'bg-red-400/20 text-red-400 border-red-400/40';
+    label = daysLeft === 1 ? '1d left ⚠' : `${daysLeft}d left ⚠`;
+  } else if (daysLeft <= 30) {
+    color = 'bg-yellow-400/20 text-yellow-400 border-yellow-400/40';
+  }
+
+  return (
+    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold border ${color}`}>
+      {label}
+    </span>
+  );
+};
+
+// ── Export helpers ────────────────────────────────────────────────────────────
+const exportToCSV = (policies: import('../types').OnChainPolicy[], ethUsdPrice: number) => {
+  const header = ['Policy ID', 'Protocol', 'Coverage (USD)', 'Premium (MATIC)', 'Status', 'Expiry Date', 'Days Remaining', 'Claimed'];
+  const rows = policies.map(p => {
+    const daysLeft = Math.ceil((p.expiry * 1000 - Date.now()) / (24 * 60 * 60 * 1000));
+    return [
+      `#${p.id}`,
+      p.protocol,
+      `$${Math.round(p.coverage * ethUsdPrice).toLocaleString()}`,
+      p.premium.toFixed(4),
+      p.active ? 'Active' : 'Expired',
+      new Date(p.expiry * 1000).toLocaleDateString(),
+      p.active && daysLeft > 0 ? daysLeft : '—',
+      p.claimed ? 'Yes' : 'No',
+    ];
+  });
+
+  const csvContent = [header, ...rows]
+    .map(r => r.map(v => `"${v}"`).join(','))
+    .join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `praesidium-policies-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+const exportToPDF = (policies: import('../types').OnChainPolicy[], ethUsdPrice: number) => {
+  const rows = policies.map(p => {
+    const daysLeft = Math.ceil((p.expiry * 1000 - Date.now()) / (24 * 60 * 60 * 1000));
+    const countdown = p.active && daysLeft > 0 ? `${daysLeft}d left` : '—';
+    const statusColor = p.active ? '#4ade80' : '#9ca3af';
+    return `
+      <tr>
+        <td>#${p.id}</td>
+        <td>${p.protocol}</td>
+        <td>$${Math.round(p.coverage * ethUsdPrice).toLocaleString()}</td>
+        <td>${p.premium.toFixed(4)} MATIC</td>
+        <td style="color:${statusColor}">${p.active ? 'Active' : 'Expired'}</td>
+        <td>${new Date(p.expiry * 1000).toLocaleDateString()}</td>
+        <td>${countdown}</td>
+        <td>${p.claimed ? 'Yes' : 'No'}</td>
+      </tr>`;
+  }).join('');
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8" />
+      <title>Praesidium Insurance Policies</title>
+      <style>
+        body { font-family: Arial, sans-serif; color: #111; margin: 32px; }
+        h1 { font-size: 22px; margin-bottom: 4px; }
+        p.sub { color: #555; font-size: 13px; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { background: #1e293b; color: #fff; padding: 10px 8px; text-align: left; }
+        td { padding: 9px 8px; border-bottom: 1px solid #e2e8f0; }
+        tr:nth-child(even) td { background: #f8fafc; }
+      </style>
+    </head>
+    <body>
+      <h1>Praesidium — Insurance Portfolio</h1>
+      <p class="sub">Exported ${new Date().toLocaleString()} · ${policies.length} polic${policies.length === 1 ? 'y' : 'ies'}</p>
+      <table>
+        <thead><tr>
+          <th>Policy ID</th><th>Protocol</th><th>Coverage (USD)</th>
+          <th>Premium (MATIC)</th><th>Status</th><th>Expiry Date</th>
+          <th>Countdown</th><th>Claimed</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </body>
+    </html>`;
+
+  const w = window.open('', '_blank');
+  if (w) {
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => { w.print(); }, 400);
+  }
+};
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -77,6 +191,17 @@ const Dashboard = () => {
   const { ethUsdPrice, ethToUsd } = usePriceOracle();
   const { notifyPolicyExpiring } = useNotification();
   const [policies, setPolicies] = useState<OnChainPolicy[]>([]);
+  const [exporting, setExporting] = useState<'csv' | 'pdf' | null>(null);
+
+  const handleExportCSV = () => {
+    setExporting('csv');
+    try { exportToCSV(policies, ethUsdPrice); } finally { setTimeout(() => setExporting(null), 1000); }
+  };
+
+  const handleExportPDF = () => {
+    setExporting('pdf');
+    try { exportToPDF(policies, ethUsdPrice); } finally { setTimeout(() => setExporting(null), 800); }
+  };
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalCoverage: 0,
@@ -240,7 +365,27 @@ const Dashboard = () => {
         </motion.div>
 
         <motion.section variants={itemVariants}>
-            <h2 className="text-2xl font-orbitron mb-4">Your Portfolio</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-orbitron">Your Portfolio</h2>
+              {policies.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleExportCSV}
+                    disabled={exporting === 'csv'}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-green-500/20 text-green-400 border border-green-500/40 hover:bg-green-500/30 transition-colors disabled:opacity-50"
+                  >
+                    <FiDownload size={12} />{exporting === 'csv' ? 'Exporting…' : 'CSV'}
+                  </button>
+                  <button
+                    onClick={handleExportPDF}
+                    disabled={exporting === 'pdf'}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/40 hover:bg-blue-500/30 transition-colors disabled:opacity-50"
+                  >
+                    <FiFileText size={12} />{exporting === 'pdf' ? 'Opening…' : 'PDF'}
+                  </button>
+                </div>
+              )}
+            </div>
             {loading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-glow-blue mx-auto"></div>
@@ -258,6 +403,7 @@ const Dashboard = () => {
                         <th className="text-left py-4 px-4 text-gray-400 font-semibold">Premium Paid</th>
                         <th className="text-left py-4 px-4 text-gray-400 font-semibold">Status</th>
                         <th className="text-left py-4 px-4 text-gray-400 font-semibold">Expires</th>
+                        <th className="text-left py-4 px-4 text-gray-400 font-semibold">Countdown</th>
                         <th className="text-left py-4 px-4 text-gray-400 font-semibold">Actions</th>
                       </tr>
                     </thead>
@@ -288,6 +434,9 @@ const Dashboard = () => {
                           </td>
                           <td className="py-4 px-4 text-gray-400">
                             {new Date(policy.expiry * 1000).toLocaleDateString()}
+                          </td>
+                          <td className="py-4 px-4">
+                            <CountdownBadge expiry={policy.expiry} active={policy.active} />
                           </td>
                           <td className="py-4 px-4">
                             {(!policy.active || (policy.expiry * 1000 - Date.now()) < 30 * 24 * 60 * 60 * 1000) && (
