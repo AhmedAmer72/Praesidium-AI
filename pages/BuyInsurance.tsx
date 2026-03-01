@@ -351,45 +351,31 @@ const BuyInsurance = () => {
                                     <input 
                                       type="range" 
                                       min="1000" 
-                                      max={Math.min(protocol.coverageLimit, maxCoverageUsd)} 
+                                      max={protocol.coverageLimit} 
                                       step="1000" 
                                       value={coverage} 
                                       onChange={e => setCoverage(parseInt(e.target.value))} 
-                                      className="w-full" 
+                                      className="w-full accent-glow-blue cursor-pointer" 
                                     />
-                                    <div className={`text-center text-2xl font-orbitron mt-2 ${exceedsCapacity && !TESTING_MODE ? 'text-red-400' : ''}`}>
-                                      ${coverage.toLocaleString()}
+                                    <div className="flex items-center justify-center gap-3 mt-3">
+                                      <span className="text-gray-400 text-lg">$</span>
+                                      <input
+                                        type="number"
+                                        min="1000"
+                                        max={protocol.coverageLimit}
+                                        step="1000"
+                                        value={coverage}
+                                        onChange={e => {
+                                          const val = Math.min(Math.max(parseInt(e.target.value) || 1000, 1000), protocol.coverageLimit);
+                                          setCoverage(val);
+                                        }}
+                                        className="text-2xl font-orbitron bg-transparent border-b border-gray-600 focus:border-glow-blue focus:outline-none text-center w-40"
+                                      />
                                     </div>
-                                    
-                                    {/* Capacity Warning - hidden in testing mode */}
-                                    {exceedsCapacity && !TESTING_MODE && (
-                                      <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                                        <div className="flex items-start gap-2">
-                                          <FiAlertTriangle className="text-red-400 mt-0.5 flex-shrink-0" />
-                                          <div>
-                                            <p className="text-red-400 text-sm font-semibold">Exceeds Pool Capacity</p>
-                                            <p className="text-gray-400 text-xs mt-1">
-                                              Max available coverage: ${maxCoverageUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
-                                    
-                                    {/* Testing Mode Indicator */}
-                                    {TESTING_MODE && (
-                                      <div className="mt-3 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-center">
-                                        <p className="text-yellow-400 text-xs">🧪 Testing Mode - Capacity checks disabled</p>
-                                      </div>
-                                    )}
-                                    
-                                    {/* Capacity Info */}
-                                    {!capacityLoading && !TESTING_MODE && (
-                                      <div className="mt-3 text-xs text-gray-500 text-center">
-                                        Pool utilization: {(utilizationRatio ?? 0).toFixed(1)}% | 
-                                        Available: ${((availableCapacity ?? 0) * (ethUsdPrice ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                      </div>
-                                    )}
+                                    <div className="flex justify-between text-xs text-gray-500 mt-2 px-1">
+                                      <span>$1,000</span>
+                                      <span>${protocol.coverageLimit.toLocaleString()}</span>
+                                    </div>
                                 </div>
                                 <div>
                                     <h4 className="text-lg font-semibold">Parametric Triggers</h4>
