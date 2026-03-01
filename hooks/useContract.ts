@@ -19,7 +19,7 @@ const AMOY_RPC_URLS = [
 const POLYGON_RPC_URLS = [
   'https://polygon-bor-rpc.publicnode.com',
   'https://polygon.drpc.org',
-  'https://polygon-rpc.com'
+  'https://rpc.ankr.com/polygon'
 ];
 
 // Create a fallback JSON-RPC provider based on network

@@ -31,7 +31,7 @@ export const NETWORKS = {
   polygon: {
     chainId: '0x89',
     chainName: 'Polygon Mainnet',
-    rpcUrls: ['https://polygon-rpc.com'],
+    rpcUrls: ['https://polygon-bor-rpc.publicnode.com'],
     blockExplorerUrls: ['https://polygonscan.com']
   }
 };
