@@ -248,7 +248,7 @@ const Claims = () => {
           
           const tx = await contract.submitClaim(
             selectedPolicy,
-            trigger.type,
+            triggerType,
             claimEvidence || 'Parametric trigger detected',
             gasOptions
           );

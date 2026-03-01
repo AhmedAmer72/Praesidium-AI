@@ -32,6 +32,27 @@ import Analytics from './pages/Analytics';
 import SkeletonLoader from './components/ui/SkeletonLoader';
 import ErrorBoundary from './components/ErrorBoundary';
 
+// Polygon mainnet with publicnode RPC (overrides default polygon-rpc.com which 401s)
+const polygonMainnet = defineChain({
+  ...polygon,
+  rpcUrls: {
+    default: {
+      http: [
+        'https://polygon-bor-rpc.publicnode.com',
+        'https://rpc.ankr.com/polygon',
+        'https://polygon.drpc.org',
+      ],
+    },
+    public: {
+      http: [
+        'https://polygon-bor-rpc.publicnode.com',
+        'https://rpc.ankr.com/polygon',
+        'https://polygon.drpc.org',
+      ],
+    },
+  },
+});
+
 // Custom Polygon Amoy chain with reliable public RPCs
 const polygonAmoy = defineChain({
   id: 80002,
@@ -61,7 +82,7 @@ const projectId = 'd37e786b8676a000c8900050a9d001d6';
 const config = getDefaultConfig({
   appName: 'Praesidium AI',
   projectId,
-  chains: [polygon, polygonAmoy], // Polygon mainnet first (default)
+  chains: [polygonMainnet, polygonAmoy], // overridden polygon with publicnode RPC
   ssr: false,
 });
 
